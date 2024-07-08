@@ -1,0 +1,3485 @@
+/*
+     This script is used to generate and transform the SRU data for each month.
+     Developed By: Finance Systems and Data Team
+     Ver: 1.0
+     Author: Kaustubh Mahesh
+*/
+
+
+----------------------------Final Query for SRU FROM here below -------------------------------------------------------------------
+
+ --------------- Varicent Data Contianer (Currency Conversion AND GLI Terr Type Exclusion) ----------------
+
+------SRU Data till Inner Join in Alteryx
+WITH Varicent_Data_Container_Inner_Join AS(
+SELECT 
+    TIMEDIM_FINANCIAL.TIME_YEAR_NUM,
+    TIMEDIM_FINANCIAL.TIME_MONTH_NUM,
+    TIMEDIM_FINANCIAL.MONTH_NUMERIC AS "Financial Period YYYYMM",
+    WESTMART_TIMEDIM_ASYM.MONTH_NUMERIC AS "ASYM YYYYMM",
+    EDW_SNFL.TRDW.VARICENT_CRTRN_ORD_FACT.LINE_OF_BUSINESS,
+    EDW_SNFL.TRDW.VARICENT_CRTRN_ORD_FACT.DOC_NUMBER AS "Order Doc Num",
+    EDW_SNFL.TRDW.VARICENT_CRTRN_ORD_FACT.S_ORD_ITEM AS "Line Item Num",
+    EDW_SNFL.TRDW.VARICENT_CRTRN_ORD_FACT.CHARGEBACK_DOC_NUMBER,
+    EDW_SNFL.TRDW.VARICENT_CRTRN_ORD_FACT.CHARGEBACK_ITEM_NUMBER,
+    EDW_SNFL.TRDW.VARICENT_CRTRN_ORD_FACT.TRACK_DOC_NUMBER,
+    EDW_SNFL.TRDW.VARICENT_CRTRN_ORD_FACT.TRACK_S_ORD_ITEM,
+    EDW_SNFL.TRDW.VARICENT_ORDER_DIM.ORDER_TYPE,
+    EDW_SNFL.TRDW.VARICENT_ORDER_DIM.AWARD_TYPE,
+    EDW_SNFL.TRDW.VARICENT_TYPE_DIM.SALES_TYPE,
+    EDW_SNFL.TRDW.VARICENT_TYPE_DIM.SALES_TYPE_DESC,
+    CUSTOMERZW.CUSTOMER_NUMBER AS "ZW Customer Number",
+    CUSTOMERZW.NAME AS "ZW Customer Desc",
+    CUSTOMERZB.CUSTOMER_NUMBER AS "ZB Customer Number",
+    CUSTOMERZB.NAME AS "ZB Customer Desc",
+    EDW_SNFL.TRDW.MATERIALDIM.MATL_GROUP,
+    EDW_SNFL.TRDW.MATERIALDIM.MATERIAL_NUM,
+    Upper(EDW_SNFL.TRDW.MATERIALDIM.MATERIAL_TXT),
+    EDW_SNFL.TRDW.MATERIALDIM.CLASSIFICATION1,
+    EDW_SNFL.TRDW.MATERIALDIM.CLASSIFICATION2,
+    EDW_SNFL.TRDW.MATERIALDIM.CLASSIFICATION3,
+    EDW_SNFL.TRDW.MATERIALDIM.CLASSIFICATION4,
+    EDW_SNFL.TRDW.MATERIALDIM.CLASSIFICATION5,
+    EDW_SNFL.TRDW.MATERIALDIM.CLSFITION1_DESC,
+    EDW_SNFL.TRDW.MATERIALDIM.CLSFITION2_DESC,
+    EDW_SNFL.TRDW.MATERIALDIM.CLSFITION3_DESC,
+    EDW_SNFL.TRDW.MATERIALDIM.CLSFITION4_DESC,
+    EDW_SNFL.TRDW.MATERIALDIM.CLSFITION5_DESC,
+    SUM(EDW_SNFL.TRDW.VARICENT_CRTRN_ORD_FACT.SALES_COMMISSION_AMT) AS "New Sales Amount",
+    EDW_SNFL.TRDW.TS_REP_DIM.REP_NUM,
+    EDW_SNFL.TRDW.TS_REP_DIM.REP_LAST_NAME,
+    EDW_SNFL.TRDW.TS_REP_DIM.REP_FIRST_NAME,
+    EDW_SNFL.TRDW.TS_TERRITORY_DIM.TERR_NUM,
+    EDW_SNFL.TRDW.TS_TERRITORY_DIM.TERR_DESC,
+    EDW_SNFL.TRDW.TS_TERRITORY_DIM.COMPANY_NAME,
+    EDW_SNFL.TRDW.TS_TERRITORY_DIM.SALES_FORCE_DESC,
+    EDW_SNFL.TRDW.TS_TERRITORY_DIM.MARKET_SEGMENT_DESC,
+    EDW_SNFL.TRDW.TS_TERRITORY_DIM.REP_FUNCTION_DESC,
+    EDW_SNFL.TRDW.TS_TERRITORY_DIM.COMPANY_NAME || '-' || EDW_SNFL.TRDW.TS_TERRITORY_DIM.SALES_FORCE_CODE || '-' || EDW_SNFL.TRDW.TS_TERRITORY_DIM.MARKET_SEGMENT_CODE || '-' || EDW_SNFL.TRDW.TS_TERRITORY_DIM.REP_FUNCTION_CODE AS "Territory Type Code",
+    EDW_SNFL.TRDW.TS_TERRITORY_DIM.DISTRICT_DESC,
+    CUSTOMERZW.CITY AS "ZW City",
+    CUSTOMERZW.COUNTRY AS "ZW Country",
+    CUSTOMERZW.POSTAL_CD AS "ZW Postal Code",
+    CUSTOMERZW.REGION AS "ZW Region",
+    CUSTOMERZB.CITY AS "ZB City",
+    CUSTOMERZB.COUNTRY AS "ZB Country",
+    CUSTOMERZB.POSTAL_CD AS "ZB Postal Code",
+    CUSTOMERZB.REGION AS "ZB Region",
+    EDW_SNFL.TRDW.VARICENT_CRTRN_ORD_FACT.MYR_ID,
+    EDW_SNFL.TRDW.VARICENT_ORDER_DIM.ORDER_TYPE_GROUP_DESC,
+    EDW_SNFL.TRDW.VARICENT_IDENTIFIER_DIM.BASE_ID,
+    EDW_SNFL.TRDW.VARICENT_IDENTIFIER_DIM.BASE_ID_DESC,
+    EDW_SNFL.TRDW.VARICENT_IDENTIFIER_DIM.RENEWAL_IND,
+    EDW_SNFL.TRDW.VARICENT_IDENTIFIER_DIM.RENEWAL_IND_DESC,
+    "ECM_CY_FROZEN_SEGMENT:ZB".ECM_PARTY_ID AS "ZB ECMID",
+    "ECM_CY_FROZEN_SEGMENT:ZB".FULL_NAME AS "ZB ECM Full Name",
+    "ECM_CY_FROZEN_SEGMENT:ZW".ECM_PARTY_ID AS "ZW ECMID",
+    "ECM_CY_FROZEN_SEGMENT:ZW".FULL_NAME AS "ZW ECM Full Name",
+    "ECM_CY_FROZEN_SEGMENT:ZW".PARTY_TR_MARKET_SEGM_L1 AS "ZW CY Segment L1",
+    "ECM_CY_FROZEN_SEGMENT:ZW".PARTY_TR_MARKET_SEGM_L2 AS "ZW CY Segment L2",
+    "ECM_CY_FROZEN_SEGMENT:ZB".PARTY_TR_MARKET_SEGM_L1 AS "ZB CY Segment L1",
+    "ECM_CY_FROZEN_SEGMENT:ZB".PARTY_TR_MARKET_SEGM_L2 AS "ZB CY Segment L2",
+    CUSTOMERZW.CUST_GROUP_TXT AS "ZW CUST_GROUP_TXT",
+    EDW_SNFL.TRDW.TR_SAS_FM_REV_TYPE_DIM.TR_SASFM_REV_TYPE_DESC,
+    EDW_SNFL.TRDW.VARICENT_CRTRN_ORD_FACT.SUBMIT_PAYEE_ID,
+    EDW_SNFL.TRDW.SUBMITTINGREPDIM.ZTERRTYP_TXT,
+    EDW_SNFL.TRDW.VARICENT_CRTRN_ORD_FACT.LINE_OF_BUSINESS_CURRENCY,
+    EDW_SNFL.TRDW.TS_TERRITORY_DIM.TERR_ID 
+    FROM 
+    EDW_SNFL.TRDW.VARICENT_ORDER_DIM, 
+    EDW_SNFL.TRDW.TIMEDIM WESTMART_TIMEDIM_ASYM, 
+    EDW_SNFL.TRDW.CUSTOMER CUSTOMERZW, 
+    EDW_SNFL.TRDW.CUSTOMER CUSTOMERZB, 
+    EDW_SNFL.TRDW.VARICENT_CRTRN_ORD_FACT, 
+    EDW_SNFL.TRDW.MATERIALDIM, 
+    EDW_SNFL.TRDW.TS_REP_DIM, 
+    EDW_SNFL.TRDW.TS_TERRITORY_DIM, 
+    EDW_SNFL.TRDW.TIMEDIM TIMEDIM_FINANCIAL, 
+    EDW_SNFL.TRDW.VARICENT_TYPE_DIM, 
+    EDW_SNFL.TRDW.VARICENT_IDENTIFIER_DIM, 
+    EDW_SNFL.TRMDM.ECM_CY_FROZEN_SEGMENT "ECM_CY_FROZEN_SEGMENT:ZB", 
+    EDW_SNFL.TRMDM.ECM_CY_FROZEN_SEGMENT "ECM_CY_FROZEN_SEGMENT:ZW", 
+    EDW_SNFL.TRDW.TR_SAS_FM_REV_TYPE_DIM, 
+    EDW_SNFL.TRDW.SUBMITTINGREPDIM 
+WHERE 
+    (EDW_SNFL.TRDW.VARICENT_ORDER_DIM.VAR_ORD_KEY = EDW_SNFL.TRDW.VARICENT_CRTRN_ORD_FACT.VAR_ORD_KEY) AND 
+    (EDW_SNFL.TRDW.TS_TERRITORY_DIM.TERR_ID = EDW_SNFL.TRDW.VARICENT_CRTRN_ORD_FACT.TERRITORY_ID) AND 
+    (EDW_SNFL.TRDW.VARICENT_CRTRN_ORD_FACT.VAR_TYPE_KEY_ACTUAL = EDW_SNFL.TRDW.VARICENT_TYPE_DIM.VAR_TYPE_KEY) AND 
+    (EDW_SNFL.TRDW.TS_REP_DIM.REP_ID = EDW_SNFL.TRDW.VARICENT_CRTRN_ORD_FACT.PAYEE_ID) AND 
+    (CUSTOMERZW.CUSTOMER_KEY = EDW_SNFL.TRDW.VARICENT_CRTRN_ORD_FACT.ZWL_RPT_ORG) AND 
+    (EDW_SNFL.TRDW.MATERIALDIM.MATERIAL_KEY = EDW_SNFL.TRDW.VARICENT_CRTRN_ORD_FACT.MATERIAL_KEY) AND 
+    (WESTMART_TIMEDIM_ASYM.TIME_DIM_KEY = EDW_SNFL.TRDW.VARICENT_CRTRN_ORD_FACT.TIME_DIM_KEY_ASYM) AND
+    (TIMEDIM_FINANCIAL.TIME_DIM_KEY = EDW_SNFL.TRDW.VARICENT_CRTRN_ORD_FACT.TIME_DIM_KEY_FINACIAL_PERIOD) AND 
+    EDW_SNFL.TRDW.VARICENT_CRTRN_ORD_FACT.ZWL_SUB_LOC = CUSTOMERZB.CUSTOMER_KEY AND
+    EDW_SNFL.TRDW.VARICENT_CRTRN_ORD_FACT.VAR_IDENT_KEY_ACTUAL = EDW_SNFL.TRDW.VARICENT_IDENTIFIER_DIM.VAR_IDENT_KEY AND 
+    EDW_SNFL.TRDW.MATERIALDIM.REV_TYPE = EDW_SNFL.TRDW.TR_SAS_FM_REV_TYPE_DIM.TR_SASFM_REV_TYPE_CODE(+) AND
+    EDW_SNFL.TRDW.VARICENT_CRTRN_ORD_FACT.SUBMIT_PAYEE_ID = EDW_SNFL.TRDW.SUBMITTINGREPDIM.SUBMITTING_REP_KEY(+) AND 
+    CUSTOMERZW.CUSTOMER_NUMBER = "ECM_CY_FROZEN_SEGMENT:ZW".SRC_CUST_ID(+) AND
+    CUSTOMERZB.CUSTOMER_NUMBER = "ECM_CY_FROZEN_SEGMENT:ZB".SRC_CUST_ID(+) AND
+    TIMEDIM_FINANCIAL.TIME_YEAR_NUM = 2024 AND
+    ("ECM_CY_FROZEN_SEGMENT:ZB".SRC_SYS_NAME IS NULL OR "ECM_CY_FROZEN_SEGMENT:ZB".SRC_SYS_NAME = 'ENTWRP') AND
+    ("ECM_CY_FROZEN_SEGMENT:ZW".SRC_SYS_NAME IS NULL OR "ECM_CY_FROZEN_SEGMENT:ZW".SRC_SYS_NAME = 'ENTWRP') AND
+    EDW_SNFL.TRDW.VARICENT_ORDER_DIM.VALUE_TYPE NOT IN ('MYR AMOUNT', 'KICKER AMOUNT') AND 
+    TIMEDIM_FINANCIAL.TIME_MONTH_NUM = MONTH(CURRENT_DATE)-1 AND 
+    ((EDW_SNFL.TRDW.MATERIALDIM.CLASSIFICATION1 IS NULL) OR EDW_SNFL.TRDW.MATERIALDIM.CLASSIFICATION1 != 'L1_500_FP') AND
+    TIMEDIM_FINANCIAL.TIME_YEAR_NUM IS NOT NULL
+GROUP BY 
+    TIMEDIM_FINANCIAL.TIME_YEAR_NUM, 
+    TIMEDIM_FINANCIAL.TIME_MONTH_NUM, 
+    TIMEDIM_FINANCIAL.MONTH_NUMERIC, 
+    WESTMART_TIMEDIM_ASYM.MONTH_NUMERIC, 
+    EDW_SNFL.TRDW.VARICENT_CRTRN_ORD_FACT.LINE_OF_BUSINESS, 
+    EDW_SNFL.TRDW.VARICENT_CRTRN_ORD_FACT.DOC_NUMBER, 
+    EDW_SNFL.TRDW.VARICENT_CRTRN_ORD_FACT.S_ORD_ITEM, 
+    EDW_SNFL.TRDW.VARICENT_CRTRN_ORD_FACT.CHARGEBACK_DOC_NUMBER, 
+    EDW_SNFL.TRDW.VARICENT_CRTRN_ORD_FACT.CHARGEBACK_ITEM_NUMBER, 
+    EDW_SNFL.TRDW.VARICENT_CRTRN_ORD_FACT.TRACK_DOC_NUMBER, 
+    EDW_SNFL.TRDW.VARICENT_CRTRN_ORD_FACT.TRACK_S_ORD_ITEM, 
+    EDW_SNFL.TRDW.VARICENT_ORDER_DIM.ORDER_TYPE, 
+    EDW_SNFL.TRDW.VARICENT_ORDER_DIM.AWARD_TYPE, 
+    EDW_SNFL.TRDW.VARICENT_TYPE_DIM.SALES_TYPE,
+    EDW_SNFL.TRDW.VARICENT_TYPE_DIM.SALES_TYPE_DESC, 
+    CUSTOMERZW.CUSTOMER_NUMBER, 
+    CUSTOMERZW.NAME, 
+    CUSTOMERZB.CUSTOMER_NUMBER,
+    CUSTOMERZB.NAME, 
+    EDW_SNFL.TRDW.MATERIALDIM.MATL_GROUP, 
+    EDW_SNFL.TRDW.MATERIALDIM.MATERIAL_NUM, 
+    UPPER(EDW_SNFL.TRDW.MATERIALDIM.MATERIAL_TXT),
+    EDW_SNFL.TRDW.MATERIALDIM.CLASSIFICATION1, 
+    EDW_SNFL.TRDW.MATERIALDIM.CLASSIFICATION2, 
+    EDW_SNFL.TRDW.MATERIALDIM.CLASSIFICATION3, 
+    EDW_SNFL.TRDW.MATERIALDIM.CLASSIFICATION4,
+    EDW_SNFL.TRDW.MATERIALDIM.CLASSIFICATION5, 
+    EDW_SNFL.TRDW.MATERIALDIM.CLSFITION1_DESC, 
+    EDW_SNFL.TRDW.MATERIALDIM.CLSFITION2_DESC, 
+    EDW_SNFL.TRDW.MATERIALDIM.CLSFITION3_DESC,
+    EDW_SNFL.TRDW.MATERIALDIM.CLSFITION4_DESC,
+    EDW_SNFL.TRDW.MATERIALDIM.CLSFITION5_DESC, 
+    EDW_SNFL.TRDW.TS_REP_DIM.REP_NUM, 
+    EDW_SNFL.TRDW.TS_REP_DIM.REP_LAST_NAME, 
+    EDW_SNFL.TRDW.TS_REP_DIM.REP_FIRST_NAME,
+    EDW_SNFL.TRDW.TS_TERRITORY_DIM.TERR_NUM, 
+    EDW_SNFL.TRDW.TS_TERRITORY_DIM.TERR_DESC, 
+    EDW_SNFL.TRDW.TS_TERRITORY_DIM.COMPANY_NAME, 
+    EDW_SNFL.TRDW.TS_TERRITORY_DIM.SALES_FORCE_DESC,
+    EDW_SNFL.TRDW.TS_TERRITORY_DIM.MARKET_SEGMENT_DESC, 
+    EDW_SNFL.TRDW.TS_TERRITORY_DIM.REP_FUNCTION_DESC,
+    EDW_SNFL.TRDW.TS_TERRITORY_DIM.COMPANY_NAME || '-' || EDW_SNFL.TRDW.TS_TERRITORY_DIM.SALES_FORCE_CODE || '-' || EDW_SNFL.TRDW.TS_TERRITORY_DIM.MARKET_SEGMENT_CODE || '-' || EDW_SNFL.TRDW.TS_TERRITORY_DIM.REP_FUNCTION_CODE, EDW_SNFL.TRDW.TS_TERRITORY_DIM.DISTRICT_DESC, CUSTOMERZW.CITY, CUSTOMERZW.COUNTRY, CUSTOMERZW.POSTAL_CD, CUSTOMERZW.REGION, CUSTOMERZB.CITY, CUSTOMERZB.COUNTRY, CUSTOMERZB.POSTAL_CD, CUSTOMERZB.REGION, EDW_SNFL.TRDW.VARICENT_CRTRN_ORD_FACT.MYR_ID, EDW_SNFL.TRDW.VARICENT_ORDER_DIM.ORDER_TYPE_GROUP_DESC, EDW_SNFL.TRDW.VARICENT_IDENTIFIER_DIM.BASE_ID, EDW_SNFL.TRDW.VARICENT_IDENTIFIER_DIM.BASE_ID_DESC, EDW_SNFL.TRDW.VARICENT_IDENTIFIER_DIM.RENEWAL_IND, EDW_SNFL.TRDW.VARICENT_IDENTIFIER_DIM.RENEWAL_IND_DESC, "ECM_CY_FROZEN_SEGMENT:ZB".ECM_PARTY_ID, "ECM_CY_FROZEN_SEGMENT:ZB".FULL_NAME, "ECM_CY_FROZEN_SEGMENT:ZW".ECM_PARTY_ID, "ECM_CY_FROZEN_SEGMENT:ZW".FULL_NAME, "ECM_CY_FROZEN_SEGMENT:ZW".PARTY_TR_MARKET_SEGM_L1, "ECM_CY_FROZEN_SEGMENT:ZW".PARTY_TR_MARKET_SEGM_L2, "ECM_CY_FROZEN_SEGMENT:ZB".PARTY_TR_MARKET_SEGM_L1, "ECM_CY_FROZEN_SEGMENT:ZB".PARTY_TR_MARKET_SEGM_L2, CUSTOMERZW.CUST_GROUP_TXT, EDW_SNFL.TRDW.TR_SAS_FM_REV_TYPE_DIM.TR_SASFM_REV_TYPE_DESC, EDW_SNFL.TRDW.VARICENT_CRTRN_ORD_FACT.SUBMIT_PAYEE_ID, EDW_SNFL.TRDW.SUBMITTINGREPDIM.ZTERRTYP_TXT, EDW_SNFL.TRDW.VARICENT_CRTRN_ORD_FACT.LINE_OF_BUSINESS_CURRENCY, EDW_SNFL.TRDW.TS_TERRITORY_DIM.TERR_ID, "ECM_CY_FROZEN_SEGMENT:ZB".SRC_SYS_NAME, "ECM_CY_FROZEN_SEGMENT:ZW".SRC_SYS_NAME),
+
+
+-- Inner Join 
+Varicent_Data_Container_Left_Inner_Join AS (
+SELECT 
+    q1.*,
+    q2.TERRITORY_ID,
+    q2.salesregion 
+FROM 
+    Varicent_Data_Container_Inner_Join q1 
+LEFT JOIN 
+    MYDATASPACE.A208043_FINANCE_CONSREVENUE_UAT1.SRU_SALES_CMSNV_TC_CHL_6_TERR_LKP$ q2
+ON 
+    q1.TERR_ID = q2.TERRITORY_ID),
+
+------Filter data based ON the amount IS USD
+Varicent_Data_Container_Filter_USD AS( 
+SELECT 
+    q2.*,
+FROM 
+    VARICENT_DATA_CONTAINER_LEFT_INNER_JOIN q2 
+WHERE 
+    q2.LINE_OF_BUSINESS_CURRENCY = 'USD'),
+
+------Filter data based ON the amount IS not USD
+Varicent_Data_Container_Filter_Not_USD AS( 
+SELECT 
+    q2.*,
+FROM 
+    VARICENT_DATA_CONTAINER_LEFT_INNER_JOIN q2 
+WHERE 
+    q2.LINE_OF_BUSINESS_CURRENCY != 'USD'),
+
+-----------------------------------------------------
+
+------ Creating new data for values which are USD
+Varicent_Data_Container_USD_New_Sales_Amount AS(
+SELECT 
+    NULL AS CY_PLAN_RATE,
+    q2.TIME_YEAR_NUM,
+    q2.TIME_MONTH_NUM,
+    q2."Financial Period YYYYMM",
+    q2."ASYM YYYYMM",
+    q2.LINE_OF_BUSINESS,
+    q2."Order Doc Num",
+    q2."Line Item Num",
+    q2.CHARGEBACK_DOC_NUMBER,
+    q2.CHARGEBACK_ITEM_NUMBER,
+    q2.TRACK_DOC_NUMBER,
+    q2.TRACK_S_ORD_ITEM,
+    q2.ORDER_TYPE,
+    q2.AWARD_TYPE,
+    q2.SALES_TYPE,
+    q2.SALES_TYPE_DESC,
+    q2."ZW Customer Number",
+    q2."ZW Customer Desc",
+    q2."ZB Customer Number",
+    q2."ZB Customer Desc",
+    q2.MATL_GROUP,
+    q2.MATERIAL_NUM,
+    q2."UPPER(EDW_SNFL.TRDW.MATERIALDIM.MATERIAL_TXT)",
+    q2.CLASSIFICATION1,
+    q2.CLASSIFICATION2,
+    q2.CLASSIFICATION3,
+    q2.CLASSIFICATION4,
+    q2.CLASSIFICATION5,
+    q2.CLSFITION1_DESC,
+    q2.CLSFITION2_DESC,
+    q2.CLSFITION3_DESC,
+    q2.CLSFITION4_DESC,
+    q2.CLSFITION5_DESC,
+    q2."New Sales Amount",
+    q2.REP_NUM,
+    q2.REP_LAST_NAME,
+    q2.REP_FIRST_NAME,
+    q2.TERR_NUM,
+    q2.TERR_DESC,
+    q2.COMPANY_NAME,
+    q2.SALES_FORCE_DESC,
+    q2.MARKET_SEGMENT_DESC,
+    q2.REP_FUNCTION_DESC,
+    q2."Territory Type Code",
+    q2.DISTRICT_DESC,
+    q2."ZW City",
+    q2."ZW Country",
+    q2."ZW Postal Code",
+    q2."ZW Region",
+    q2."ZB City",
+    q2."ZB Country",
+    q2."ZB Postal Code",
+    q2."ZB Region",
+    q2.MYR_ID,
+    q2.ORDER_TYPE_GROUP_DESC,
+    q2.BASE_ID,
+    q2.BASE_ID_DESC,
+    q2.RENEWAL_IND,
+    q2.RENEWAL_IND_DESC,
+    q2."ZB ECMID",
+    q2."ZB ECM Full Name",
+    q2."ZW ECMID",
+    q2."ZW ECM Full Name",
+    q2."ZW CY Segment L1",
+    q2."ZW CY Segment L2",
+    q2."ZB CY Segment L1",
+    q2."ZB CY Segment L2",
+    q2."ZW CUST_GROUP_TXT",
+    q2.TR_SASFM_REV_TYPE_DESC,
+    q2.SUBMIT_PAYEE_ID,
+    q2.ZTERRTYP_TXT,
+    'USD' AS Doc_Currency,
+    q2.SalesRegion,
+    "New Sales Amount" AS USD_New_Sales_Amount,
+    q2.TERR_ID
+FROM 
+    Varicent_Data_Container_Filter_USD q2),
+
+--------- Currency Data Query. 
+Varicent_Data_Container_Currency_Data AS(
+SELECT 
+    EDW_SNFL.GLOBAL.GBL_CURENT_YEAR_PLAN_RATE_VW.W_FROM_CURCY_CODE AS W_FROM_CURCY_CODE, 
+    EDW_SNFL.GLOBAL.GBL_CURENT_YEAR_PLAN_RATE_VW.W_TO_CURCY_CODE AS W_TO_CURCY_CODE, 
+    EDW_SNFL.GLOBAL.GBL_CURENT_YEAR_PLAN_RATE_VW.CY_YEAR AS CY_YEAR, 
+    EDW_SNFL.GLOBAL.GBL_CURENT_YEAR_PLAN_RATE_VW.CY_PLAN_RATE AS CY_PLAN_RATE, 
+    EDW_SNFL.GLOBAL.GBL_CURENT_YEAR_PLAN_RATE_VW.PY_YEAR AS PY_YEAR, 
+    EDW_SNFL.GLOBAL.GBL_CURENT_YEAR_PLAN_RATE_VW.PY_PLAN_RATE AS PY_PLAN_RATE
+FROM 
+    EDW_SNFL.GLOBAL.GBL_CURENT_YEAR_PLAN_RATE_VW
+ORDER BY W_FROM_CURCY_CODE),
+
+--- Inner JOIN between currency data AND filtered non-USD data.
+Varicent_Data_Container_InnerJoin_Curr_Data_Not_USD AS (
+SELECT 
+    a.CY_PLAN_RATE,
+    b.*
+FROM 
+    Varicent_Data_Container_Currency_Data a 
+INNER JOIN 
+    Varicent_Data_Container_Filter_Not_USD b 
+ON 
+    a.W_FROM_CURCY_CODE = b.LINE_OF_BUSINESS_CURRENCY
+), 
+
+--- Creating new data for values which are not USD
+Varicent_Data_Container_NON_USD_New_Sales_Amount AS(
+SELECT 
+    q2.CY_PLAN_RATE,
+    q2.TIME_YEAR_NUM,
+    q2.TIME_MONTH_NUM,
+    q2."Financial Period YYYYMM",
+    q2."ASYM YYYYMM",
+    q2.LINE_OF_BUSINESS,
+    q2."Order Doc Num",
+    q2."Line Item Num",
+    q2.CHARGEBACK_DOC_NUMBER,
+    q2.CHARGEBACK_ITEM_NUMBER,
+    q2.TRACK_DOC_NUMBER,
+    q2.TRACK_S_ORD_ITEM,
+    q2.ORDER_TYPE,
+    q2.AWARD_TYPE,
+    q2.SALES_TYPE,
+    q2.SALES_TYPE_DESC,
+    q2."ZW Customer Number",
+    q2."ZW Customer Desc",
+    q2."ZB Customer Number",
+    q2."ZB Customer Desc",
+    q2.MATL_GROUP,
+    q2.MATERIAL_NUM,
+    q2."UPPER(EDW_SNFL.TRDW.MATERIALDIM.MATERIAL_TXT)",
+    q2.CLASSIFICATION1,
+    q2.CLASSIFICATION2,
+    q2.CLASSIFICATION3,
+    q2.CLASSIFICATION4,
+    q2.CLASSIFICATION5,
+    q2.CLSFITION1_DESC,
+    q2.CLSFITION2_DESC,
+    q2.CLSFITION3_DESC,
+    q2.CLSFITION4_DESC,
+    q2.CLSFITION5_DESC,
+    q2."New Sales Amount",
+    q2.REP_NUM,
+    q2.REP_LAST_NAME,
+    q2.REP_FIRST_NAME,
+    q2.TERR_NUM,
+    q2.TERR_DESC,
+    q2.COMPANY_NAME,
+    q2.SALES_FORCE_DESC,
+    q2.MARKET_SEGMENT_DESC,
+    q2.REP_FUNCTION_DESC,
+    q2."Territory Type Code",
+    q2.DISTRICT_DESC,
+    q2."ZW City",
+    q2."ZW Country",
+    q2."ZW Postal Code",
+    q2."ZW Region",
+    q2."ZB City",
+    q2."ZB Country",
+    q2."ZB Postal Code",
+    q2."ZB Region",
+    q2.MYR_ID,
+    q2.ORDER_TYPE_GROUP_DESC,
+    q2.BASE_ID,
+    q2.BASE_ID_DESC,
+    q2.RENEWAL_IND,
+    q2.RENEWAL_IND_DESC,
+    q2."ZB ECMID",
+    q2."ZB ECM Full Name",
+    q2."ZW ECMID",
+    q2."ZW ECM Full Name",
+    q2."ZW CY Segment L1",
+    q2."ZW CY Segment L2",
+    q2."ZB CY Segment L1",
+    q2."ZB CY Segment L2",
+    q2."ZW CUST_GROUP_TXT",
+    q2.TR_SASFM_REV_TYPE_DESC,
+    q2.SUBMIT_PAYEE_ID,
+    q2.ZTERRTYP_TXT,
+    q2.LINE_OF_BUSINESS_CURRENCY AS Doc_Currency,
+    q2.SalesRegion,
+    ROUND("New Sales Amount" * CY_PLAN_RATE, 2) AS USD_New_Sales_Amount,
+    NULL AS TERR_ID
+FROM 
+    Varicent_Data_Container_InnerJoin_Curr_Data_Not_USD q2), 
+
+-- Varicent_Data_Container_USD_New_Sales_Amount---------- NULL AS CY_PLAN_RATE
+-- Varicent_Data_Container_NON_USD_New_Sales_Amount --- -NULL AS TERR_ID. 
+
+---- Merging Non USD data with USD data.
+Varicent_Data_Container_Merge_USD_NONUSD_Data AS (
+  SELECT 
+    a.*
+  FROM 
+    Varicent_Data_Container_NON_USD_New_Sales_Amount a
+  UNION ALL
+  SELECT 
+    b.*
+  FROM 
+    Varicent_Data_Container_USD_New_Sales_Amount b
+),
+
+Varicent_Data_Container_Final_filter AS (
+SELECT 
+    * 
+FROM 
+    Varicent_Data_Container_Merge_USD_NONUSD_Data
+WHERE 
+    "Territory Type Code" NOT LIKE '%GLI%'
+ORDER BY cy_plan_rate
+),
+
+-------------------------------------------------------------------------------------------
+
+---------------------- Sale Type - Rule New Renewal Sale -------------------
+
+Sale_Type_New_Renewal_Sale_FF_Filter_Contains AS (
+SELECT 
+    *
+FROM 
+    Varicent_Data_Container_Final_filter
+WHERE   
+    "Order Doc Num" LIKE '%MHQ%' 
+    OR "Order Doc Num" LIKE '%MPP%' 
+    OR "Order Doc Num" LIKE '%MMS%' 
+    OR "Order Doc Num" LIKE '%LPM%' 
+    OR "Order Doc Num" LIKE '%LCE%'),
+
+
+Sale_Type_New_Renewal_Sale_FF_Filter_Not_Contains AS (
+SELECT 
+    * 
+FROM 
+    Varicent_Data_Container_Final_filter
+WHERE 
+    "Order Doc Num" NOT LIKE '%MHQ%'
+    OR "Order Doc Num" NOT LIKE '%MPP%' 
+    OR "Order Doc Num" NOT LIKE '%MMS%' 
+    OR "Order Doc Num" NOT LIKE '%LPM%' 
+    OR "Order Doc Num" NOT LIKE '%LCE%'
+),
+
+Sale_Type_New_Renewal_Sale_FF_Tag AS (
+SELECT
+    CY_PLAN_RATE,
+    TIME_YEAR_NUM,
+    TIME_MONTH_NUM,
+    "Financial Period YYYYMM",
+    "ASYM YYYYMM",
+    LINE_OF_BUSINESS,
+    "Order Doc Num",
+    "Line Item Num",
+    CHARGEBACK_DOC_NUMBER,
+    CHARGEBACK_ITEM_NUMBER,
+    TRACK_DOC_NUMBER,
+    TRACK_S_ORD_ITEM,
+    ORDER_TYPE,
+    'SALES ONLY-PAYEE' AS AWARD_TYPE,
+    SALES_TYPE,
+    SALES_TYPE_DESC,
+    "ZW Customer Number",
+    "ZW Customer Desc",
+    "ZB Customer Number",
+    "ZB Customer Desc",
+    MATL_GROUP,
+    MATERIAL_NUM,
+    "UPPER(EDW_SNFL.TRDW.MATERIALDIM.MATERIAL_TXT)",
+    CLASSIFICATION1,
+    CLASSIFICATION2,
+    CLASSIFICATION3,
+    CLASSIFICATION4,
+    CLASSIFICATION5,
+    CLSFITION1_DESC,
+    CLSFITION2_DESC,
+    CLSFITION3_DESC,
+    CLSFITION4_DESC,
+    CLSFITION5_DESC,
+    "New Sales Amount",
+    REP_NUM,
+    REP_LAST_NAME,
+    REP_FIRST_NAME,
+    TERR_NUM,
+    TERR_DESC,
+    COMPANY_NAME,
+    SALES_FORCE_DESC,
+    MARKET_SEGMENT_DESC,
+    REP_FUNCTION_DESC,
+    "Territory Type Code",
+    DISTRICT_DESC,
+    "ZW City",
+    "ZW Country",
+    "ZW Postal Code",
+    "ZW Region",
+    "ZB City",
+    "ZB Country",
+    "ZB Postal Code",
+    "ZB Region",
+    MYR_ID,
+    ORDER_TYPE_GROUP_DESC,
+    BASE_ID,
+    BASE_ID_DESC,
+    RENEWAL_IND,
+    RENEWAL_IND_DESC,
+    "ZB ECMID",
+    "ZB ECM Full Name",
+    "ZW ECMID",
+    "ZW ECM Full Name",
+    "ZW CY Segment L1",
+    "ZW CY Segment L2",
+    "ZB CY Segment L1",
+    "ZB CY Segment L2",
+    "ZW CUST_GROUP_TXT",
+    TR_SASFM_REV_TYPE_DESC,
+    SUBMIT_PAYEE_ID,
+    ZTERRTYP_TXT,
+    Doc_Currency,
+    SalesRegion,
+    USD_New_Sales_Amount,
+    TERR_ID  
+FROM 
+    Sale_Type_New_Renewal_Sale_FF_Filter_Contains),
+
+----- merge contain AND non contain data
+Sale_Type_New_Renewal_Sale_Merge_Contain_NONContain_Data AS (
+  SELECT 
+    a.*
+  FROM 
+    Sale_Type_New_Renewal_Sale_FF_Tag a
+  UNION ALL
+  SELECT 
+    b.*
+  FROM 
+    Sale_Type_New_Renewal_Sale_FF_Filter_Not_Contains b
+), 
+
+--------------- INNER JOIN with SRU_SALES_CMSNV_TC_SALE_TYPE_LKP
+Sale_Type_New_Renewal_Sale_Inner_Join AS (
+SELECT
+    q1.TIME_YEAR_NUM,
+    q1.TIME_MONTH_NUM,
+    q1."Financial Period YYYYMM",
+    q1."ASYM YYYYMM",
+    q1.LINE_OF_BUSINESS,
+    q1."Order Doc Num",
+    q1."Line Item Num",
+    q1.CHARGEBACK_DOC_NUMBER,
+    q1.CHARGEBACK_ITEM_NUMBER,
+    q1.TRACK_DOC_NUMBER,
+    q1.TRACK_S_ORD_ITEM,
+    q1.ORDER_TYPE,
+    q1.AWARD_TYPE,
+    q1.SALES_TYPE,
+    q1.SALES_TYPE_DESC,
+    q1."ZW Customer Number",
+    q1."ZW Customer Desc",
+    q1."ZB Customer Number",
+    q1."ZB Customer Desc",
+    q1.MATL_GROUP,
+    q1.MATERIAL_NUM,
+    q1."UPPER(EDW_SNFL.TRDW.MATERIALDIM.MATERIAL_TXT)",
+    q1.CLASSIFICATION1,
+    q1.CLASSIFICATION2,
+    q1.CLASSIFICATION3,
+    q1.CLASSIFICATION4,
+    q1.CLASSIFICATION5,
+    q1.CLSFITION1_DESC,
+    q1.CLSFITION2_DESC,
+    q1.CLSFITION3_DESC,
+    q1.CLSFITION4_DESC,
+    q1.CLSFITION5_DESC,
+    q1."New Sales Amount",
+    q1.REP_NUM,
+    q1.REP_LAST_NAME,
+    q1.REP_FIRST_NAME,
+    q1.TERR_NUM,
+    q1.TERR_DESC,
+    q1.COMPANY_NAME,
+    q1.SALES_FORCE_DESC,
+    q1.MARKET_SEGMENT_DESC,
+    q1.REP_FUNCTION_DESC,
+    q1."Territory Type Code",
+    q1.DISTRICT_DESC,
+    q1."ZW City",
+    q1."ZW Country",
+    q1."ZW Postal Code",
+    q1."ZW Region",
+    q1."ZB City",
+    q1."ZB Country",
+    q1."ZB Postal Code",
+    q1."ZB Region",
+    q1.MYR_ID,
+    q1.ORDER_TYPE_GROUP_DESC,
+    q1.BASE_ID,
+    q1.BASE_ID_DESC,
+    q1.RENEWAL_IND,
+    q1.RENEWAL_IND_DESC,
+    q1."ZB ECMID",
+    q1."ZB ECM Full Name",
+    q1."ZW ECMID",
+    q1."ZW ECM Full Name",
+    q1."ZW CY Segment L1",
+    q1."ZW CY Segment L2",
+    q1."ZB CY Segment L1",
+    q1."ZB CY Segment L2",
+    q1."ZW CUST_GROUP_TXT",
+    q1.TR_SASFM_REV_TYPE_DESC,
+    q1.SUBMIT_PAYEE_ID,
+    q1.ZTERRTYP_TXT,
+    q1.Doc_Currency,
+    q1.SalesRegion,
+    q1.USD_New_Sales_Amount, 
+    q2.RULE_NEW_RENEWAL_SALE 
+FROM 
+    Sale_Type_New_Renewal_Sale_Merge_Contain_NONContain_Data q1 
+INNER JOIN 
+    MYDATASPACE.A208043_FINANCE_CONSREVENUE_UAT1.SRU_SALES_CMSNV_TC_SALE_TYPE_LKP$ q2
+ON 
+    q1.SALES_TYPE = q2.SALES_TYPE
+WHERE 
+    q2.cmsn_extract = 'YES'), 
+----------------------------------------------------------------------------------------------------
+------------- Award type ------------
+
+Award_Type_Container AS (
+SELECT 
+    q1.*, 
+    q2.CHANNEL_MARKER,
+    q2.F5,
+    q2.F6,
+    q2.AWARD_TYPE2,
+    q2.AWARD_TYPE_DESC2,
+    q2.EXTRACT_CMSN_RECORD2,
+    q2.CHANNEL_MARKER2,
+    q2.SALE_AMT_RULE,
+    q2.REPLACED_REV_FLAG_LEGACY,
+    q2.NOTE,
+    q2.CHANGE_DATE
+FROM 
+    Sale_Type_New_Renewal_Sale_Inner_Join q1
+INNER JOIN 
+    MYDATASPACE.A208043_FINANCE_CONSREVENUE_UAT1.SRU_SALES_CMSNV_TC_AWARD_TYPE_LKP$ q2 
+ON 
+    q1.AWARD_TYPE = q2.award_type
+WHERE 
+    q2.extract_cmsn_record = 'YES'),
+-----------------------------------------------------------------------------------------------------
+
+--------------- New AND Renewal Sale Type Container ---------------
+
+------- Converting New Sale Type to split to rows
+New_Renewal_SaleType_Cleaning_New_Sale_Type_1 AS (
+SELECT
+    DISTINCT 
+    SALES_CHANNEL,
+    SALES_GROUP,
+    REV_CHNL_DESC,
+    TERR_TYPE,
+    COALESCE(TRIM(value), 'NULL') AS NEW_SALE_TYPE,
+    RNWL_SALE_TYPE,
+    CHANNEL_MARKER_NEW,
+    CHANNEL_MARKER_RNWL
+FROM 
+    MYDATASPACE.A208043_FINANCE_CONSREVENUE_UAT1.SRU_SALES_CMSNV_TC_TERR_TYPE_LKP$,
+    LATERAL FLATTEN(input => SPLIT(COALESCE(NEW_SALE_TYPE, ''), ';'))
+
+),
+
+------- Converting Renewal Sale Type to split to rows
+New_Renewal_SaleType_Cleaning_Renwal_Sale_Type_1 AS (
+SELECT 
+    DISTINCT 
+    SALES_CHANNEL,
+    SALES_GROUP,
+    REV_CHNL_DESC,
+    TERR_TYPE,
+    NEW_SALE_TYPE,
+    COALESCE(TRIM(value), 'NULL') AS RNWL_SALE_TYPE,
+    CHANNEL_MARKER_NEW,
+    CHANNEL_MARKER_RNWL
+FROM 
+    MYDATASPACE.A208043_FINANCE_CONSREVENUE_UAT1.SRU_SALES_CMSNV_TC_TERR_TYPE_LKP$,
+    LATERAL FLATTEN(input => SPLIT(COALESCE(RNWL_SALE_TYPE, ''), ';'))
+), 
+
+------- Filtering New Sale Type for 'ALL' OR Is Null.
+New_Renewal_SaleType_Cleaning_New_Sale_Type_2 AS(
+SELECT 
+    SALES_CHANNEL,
+    SALES_GROUP,
+    REV_CHNL_DESC,
+    TERR_TYPE,
+    NEW_SALE_TYPE,
+    RNWL_SALE_TYPE,
+    CHANNEL_MARKER_NEW,
+    CHANNEL_MARKER_RNWL
+FROM 
+    MYDATASPACE.A208043_FINANCE_CONSREVENUE_UAT1.SRU_SALES_CMSNV_TC_TERR_TYPE_LKP$
+WHERE 
+    NEW_SALE_TYPE IN ('ALL', 'All') OR NEW_SALE_TYPE IS NULL
+), 
+
+
+------- Filtering Renewal Sale Type for 'ALL' OR Is Null.
+New_Renewal_SaleType_Cleaning_Renwal_Sale_Type_2 AS (
+SELECT  
+    SALES_CHANNEL,
+    SALES_GROUP,
+    REV_CHNL_DESC,
+    TERR_TYPE,
+    NEW_SALE_TYPE,
+    RNWL_SALE_TYPE,
+    CHANNEL_MARKER_NEW,
+    CHANNEL_MARKER_RNWL
+FROM 
+    MYDATASPACE.A208043_FINANCE_CONSREVENUE_UAT1.SRU_SALES_CMSNV_TC_TERR_TYPE_LKP$
+WHERE 
+    RNWL_SALE_TYPE = 'ALL' OR RNWL_SALE_TYPE IS NULL
+),
+--------------------------------------------------------------------------------
+
+------ Filter for New AND Renewal --------
+new_vs_renewal_new_filter AS (
+SELECT 
+    * 
+FROM 
+    Award_Type_Container
+WHERE 
+    RULE_NEW_RENEWAL_SALE = 'NEW'
+),
+
+new_vs_renewal_renewal_filter AS (
+SELECT 
+    * 
+FROM 
+    Award_Type_Container
+WHERE 
+    RULE_NEW_RENEWAL_SALE != 'NEW'
+),
+----------------------------------------------------------------------------------
+
+------------------ New Sales Channel Maker -------------
+New_Sales_Channel_Maker_inner_join_1 AS (
+SELECT 
+    q1.TIME_YEAR_NUM,
+    q1.TIME_MONTH_NUM,
+    q1."Financial Period YYYYMM",
+    q1."ASYM YYYYMM",
+    q1.LINE_OF_BUSINESS,
+    q1."Order Doc Num",
+    q1."Line Item Num",
+    q1.CHARGEBACK_DOC_NUMBER,
+    q1.CHARGEBACK_ITEM_NUMBER,
+    q1.TRACK_DOC_NUMBER,
+    q1.TRACK_S_ORD_ITEM,
+    q1.ORDER_TYPE,
+    q1.AWARD_TYPE,
+    q1.SALES_TYPE,
+    q1.SALES_TYPE_DESC,
+    q1."ZW Customer Number",
+    q1."ZW Customer Desc",
+    q1."ZB Customer Number",
+    q1."ZB Customer Desc",
+    q1.MATL_GROUP,
+    q1.MATERIAL_NUM,
+    q1."UPPER(EDW_SNFL.TRDW.MATERIALDIM.MATERIAL_TXT)",
+    q1.CLASSIFICATION1,
+    q1.CLASSIFICATION2,
+    q1.CLASSIFICATION3,
+    q1.CLASSIFICATION4,
+    q1.CLASSIFICATION5,
+    q1.CLSFITION1_DESC,
+    q1.CLSFITION2_DESC,
+    q1.CLSFITION3_DESC,
+    q1.CLSFITION4_DESC,
+    q1.CLSFITION5_DESC,
+    q1."New Sales Amount",
+    q1.REP_NUM,
+    q1.REP_LAST_NAME,
+    q1.REP_FIRST_NAME,
+    q1.TERR_NUM,
+    q1.TERR_DESC,
+    q1.COMPANY_NAME,
+    q1.SALES_FORCE_DESC,
+    q1.MARKET_SEGMENT_DESC,
+    q1.REP_FUNCTION_DESC,
+    q1."Territory Type Code",
+    q1.DISTRICT_DESC,
+    q1."ZW City",
+    q1."ZW Country",
+    q1."ZW Postal Code",
+    q1."ZW Region",
+    q1."ZB City",
+    q1."ZB Country",
+    q1."ZB Postal Code",
+    q1."ZB Region",
+    q1.MYR_ID,
+    q1.ORDER_TYPE_GROUP_DESC,
+    q1.BASE_ID,
+    q1.BASE_ID_DESC,
+    q1.RENEWAL_IND,
+    q1.RENEWAL_IND_DESC,
+    q1."ZB ECMID",
+    q1."ZB ECM Full Name",
+    q1."ZW ECMID",
+    q1."ZW ECM Full Name",
+    q1."ZW CY Segment L1",
+    q1."ZW CY Segment L2",
+    q1."ZB CY Segment L1",
+    q1."ZB CY Segment L2",
+    q1."ZW CUST_GROUP_TXT",
+    q1.TR_SASFM_REV_TYPE_DESC,
+    q1.SUBMIT_PAYEE_ID,
+    q1.ZTERRTYP_TXT,
+    q1.Doc_Currency,
+    q1.SalesRegion,
+    q1.USD_New_Sales_Amount,
+    q1.RULE_NEW_RENEWAL_SALE,
+    q1.CHANNEL_MARKER,
+    q1.F5,
+    q1.F6,
+    q1.AWARD_TYPE2,
+    q1.AWARD_TYPE_DESC2,
+    q1.EXTRACT_CMSN_RECORD2,
+    q1.CHANNEL_MARKER2,
+    q1.SALE_AMT_RULE,
+    q1.REPLACED_REV_FLAG_LEGACY,
+    q1.NOTE,
+    q1.CHANGE_DATE, 
+    q2.SALES_CHANNEL,
+    q2.SALES_GROUP,
+    q2.REV_CHNL_DESC,
+    q2.CHANNEL_MARKER_NEW,
+    q2.CHANNEL_MARKER_RNWL
+FROM 
+    new_vs_renewal_new_filter q1 
+INNER JOIN 
+    New_Renewal_SaleType_Cleaning_New_Sale_Type_1 q2 
+ON 
+    q1."Territory Type Code" = q2.TERR_TYPE AND q1.SALES_TYPE = q2.NEW_SALE_TYPE
+-- WHERE q1.CHANNEL_MARKER != 'PAYEE'
+), 
+
+
+New_Sales_Channel_Maker_left_outer_join_1 AS (
+SELECT 
+    q1.TIME_YEAR_NUM,
+    q1.TIME_MONTH_NUM,
+    q1."Financial Period YYYYMM",
+    q1."ASYM YYYYMM",
+    q1.LINE_OF_BUSINESS,
+    q1."Order Doc Num",
+    q1."Line Item Num",
+    q1.CHARGEBACK_DOC_NUMBER,
+    q1.CHARGEBACK_ITEM_NUMBER,
+    q1.TRACK_DOC_NUMBER,
+    q1.TRACK_S_ORD_ITEM,
+    q1.ORDER_TYPE,
+    q1.AWARD_TYPE,
+    q1.SALES_TYPE,
+    q1.SALES_TYPE_DESC,
+    q1."ZW Customer Number",
+    q1."ZW Customer Desc",
+    q1."ZB Customer Number",
+    q1."ZB Customer Desc",
+    q1.MATL_GROUP,
+    q1.MATERIAL_NUM,
+    q1."UPPER(EDW_SNFL.TRDW.MATERIALDIM.MATERIAL_TXT)",
+    q1.CLASSIFICATION1,
+    q1.CLASSIFICATION2,
+    q1.CLASSIFICATION3,
+    q1.CLASSIFICATION4,
+    q1.CLASSIFICATION5,
+    q1.CLSFITION1_DESC,
+    q1.CLSFITION2_DESC,
+    q1.CLSFITION3_DESC,
+    q1.CLSFITION4_DESC,
+    q1.CLSFITION5_DESC,
+    q1."New Sales Amount",
+    q1.REP_NUM,
+    q1.REP_LAST_NAME,
+    q1.REP_FIRST_NAME,
+    q1.TERR_NUM,
+    q1.TERR_DESC,
+    q1.COMPANY_NAME,
+    q1.SALES_FORCE_DESC,
+    q1.MARKET_SEGMENT_DESC,
+    q1.REP_FUNCTION_DESC,
+    q1."Territory Type Code",
+    q1.DISTRICT_DESC,
+    q1."ZW City",
+    q1."ZW Country",
+    q1."ZW Postal Code",
+    q1."ZW Region",
+    q1."ZB City",
+    q1."ZB Country",
+    q1."ZB Postal Code",
+    q1."ZB Region",
+    q1.MYR_ID,
+    q1.ORDER_TYPE_GROUP_DESC,
+    q1.BASE_ID,
+    q1.BASE_ID_DESC,
+    q1.RENEWAL_IND,
+    q1.RENEWAL_IND_DESC,
+    q1."ZB ECMID",
+    q1."ZB ECM Full Name",
+    q1."ZW ECMID",
+    q1."ZW ECM Full Name",
+    q1."ZW CY Segment L1",
+    q1."ZW CY Segment L2",
+    q1."ZB CY Segment L1",
+    q1."ZB CY Segment L2",
+    q1."ZW CUST_GROUP_TXT",
+    q1.TR_SASFM_REV_TYPE_DESC,
+    q1.SUBMIT_PAYEE_ID,
+    q1.ZTERRTYP_TXT,
+    q1.Doc_Currency,
+    q1.SalesRegion,
+    q1.USD_New_Sales_Amount,
+    q1.RULE_NEW_RENEWAL_SALE,
+    q1.CHANNEL_MARKER,
+    q1.F5,
+    q1.F6,
+    q1.AWARD_TYPE2,
+    q1.AWARD_TYPE_DESC2,
+    q1.EXTRACT_CMSN_RECORD2,
+    q1.CHANNEL_MARKER2,
+    q1.SALE_AMT_RULE,
+    q1.REPLACED_REV_FLAG_LEGACY,
+    q1.NOTE,
+    q1.CHANGE_DATE,
+    q2.SALES_CHANNEL,
+    q2.SALES_GROUP,
+    q2.REV_CHNL_DESC,
+    q2.CHANNEL_MARKER_NEW,
+    q2.CHANNEL_MARKER_RNWL
+FROM 
+    new_vs_renewal_new_filter q1 
+LEFT JOIN 
+    New_Renewal_SaleType_Cleaning_New_Sale_Type_1 q2 
+ON 
+    q1."Territory Type Code" = q2.TERR_TYPE AND q1.SALES_TYPE = q2.NEW_SALE_TYPE
+minus 
+SELECT 
+    * 
+FROM 
+    New_Sales_Channel_Maker_inner_join_1
+-- WHERE q1.CHANNEL_MARKER != 'PAYEE'
+),  
+
+
+New_Sales_Channel_Maker_inner_join_2 AS (
+SELECT 
+    q1.*
+FROM 
+    New_Sales_Channel_Maker_left_outer_join_1 q1
+INNER JOIN 
+    New_Renewal_SaleType_Cleaning_New_Sale_Type_2 q2 
+ON 
+    q1."Territory Type Code" = q2.TERR_TYPE
+),
+
+New_Sales_Channel_Maker_left_outer_join_2 AS (
+SELECT 
+    q1.*
+FROM 
+    New_Sales_Channel_Maker_left_outer_join_1 q1
+LEFT JOIN 
+    New_Renewal_SaleType_Cleaning_New_Sale_Type_2 q2 
+ON 
+    q1."Territory Type Code" = q2.TERR_TYPE
+minus 
+SELECT 
+    * 
+FROM 
+    New_Sales_Channel_Maker_inner_join_2
+), 
+
+
+New_Sales_Channel_Maker_Payee_Filter_False AS (
+SELECT 
+    * 
+FROM 
+    New_Sales_Channel_Maker_left_outer_join_2
+WHERE NOT contains(CHANNEL_MARKER, '%PAYEE%') 
+), 
+
+New_Sales_Channel_Maker_Payee_Filter_True AS (
+SELECT 
+    * 
+FROM 
+    New_Sales_Channel_Maker_left_outer_join_2
+minus 
+SELECT 
+    * 
+FROM 
+    New_Sales_Channel_Maker_Payee_Filter_False
+), 
+
+New_Sales_Channel_Maker_Channel_Marker_Dup AS (
+SELECT 
+    TIME_YEAR_NUM,
+    TIME_MONTH_NUM,
+    "Financial Period YYYYMM",
+    "ASYM YYYYMM",
+    LINE_OF_BUSINESS,
+    "Order Doc Num",
+    "Line Item Num",
+    CHARGEBACK_DOC_NUMBER,
+    CHARGEBACK_ITEM_NUMBER,
+    TRACK_DOC_NUMBER,
+    TRACK_S_ORD_ITEM,
+    ORDER_TYPE,
+    AWARD_TYPE,
+    SALES_TYPE,
+    SALES_TYPE_DESC,
+    "ZW Customer Number",
+    "ZW Customer Desc",
+    "ZB Customer Number",
+    "ZB Customer Desc",
+    MATL_GROUP,
+    MATERIAL_NUM,
+    "UPPER(EDW_SNFL.TRDW.MATERIALDIM.MATERIAL_TXT)",
+    CLASSIFICATION1,
+    CLASSIFICATION2,
+    CLASSIFICATION3,
+    CLASSIFICATION4,
+    CLASSIFICATION5,
+    CLSFITION1_DESC,
+    CLSFITION2_DESC,
+    CLSFITION3_DESC,
+    CLSFITION4_DESC,
+    CLSFITION5_DESC,
+    "New Sales Amount",
+    REP_NUM,
+    REP_LAST_NAME,
+    REP_FIRST_NAME,
+    TERR_NUM,
+    TERR_DESC,
+    COMPANY_NAME,
+    SALES_FORCE_DESC,
+    MARKET_SEGMENT_DESC,
+    REP_FUNCTION_DESC,
+    "Territory Type Code",
+    DISTRICT_DESC,
+    "ZW City",
+    "ZW Country",
+    "ZW Postal Code",
+    "ZW Region",
+    "ZB City",
+    "ZB Country",
+    "ZB Postal Code",
+    "ZB Region",
+    MYR_ID,
+    ORDER_TYPE_GROUP_DESC,
+    BASE_ID,
+    BASE_ID_DESC,
+    RENEWAL_IND,
+    RENEWAL_IND_DESC,
+    "ZB ECMID",
+    "ZB ECM Full Name",
+    "ZW ECMID",
+    "ZW ECM Full Name",
+    "ZW CY Segment L1",
+    "ZW CY Segment L2",
+    "ZB CY Segment L1",
+    "ZB CY Segment L2",
+    "ZW CUST_GROUP_TXT",
+    TR_SASFM_REV_TYPE_DESC,
+    SUBMIT_PAYEE_ID,
+    ZTERRTYP_TXT,
+    Doc_Currency,
+    SalesRegion,
+    USD_New_Sales_Amount,
+    RULE_NEW_RENEWAL_SALE,
+    CHANNEL_MARKER,
+    F5,
+    F6,
+    AWARD_TYPE2,
+    AWARD_TYPE_DESC2,
+    EXTRACT_CMSN_RECORD2,
+    CHANNEL_MARKER2,
+    SALE_AMT_RULE,
+    REPLACED_REV_FLAG_LEGACY,
+    NOTE,
+    CHANGE_DATE,
+    SALES_CHANNEL,
+    SALES_GROUP,
+    REV_CHNL_DESC,
+    'Dup' AS CHANNEL_MARKER_NEW,
+    CHANNEL_MARKER_RNWL
+FROM 
+    New_Sales_Channel_Maker_Payee_Filter_True
+), 
+
+New_Sales_Channel_Maker_Channel_Marker_formula AS (
+SELECT 
+    TIME_YEAR_NUM,
+    TIME_MONTH_NUM,
+    "Financial Period YYYYMM",
+    "ASYM YYYYMM",
+    LINE_OF_BUSINESS,
+    "Order Doc Num",
+    "Line Item Num",
+    CHARGEBACK_DOC_NUMBER,
+    CHARGEBACK_ITEM_NUMBER,
+    TRACK_DOC_NUMBER,
+    TRACK_S_ORD_ITEM,
+    ORDER_TYPE,
+    AWARD_TYPE,
+    SALES_TYPE,
+    SALES_TYPE_DESC,
+    "ZW Customer Number",
+    "ZW Customer Desc",
+    "ZB Customer Number",
+    "ZB Customer Desc",
+    MATL_GROUP,
+    MATERIAL_NUM,
+    "UPPER(EDW_SNFL.TRDW.MATERIALDIM.MATERIAL_TXT)",
+    CLASSIFICATION1,
+    CLASSIFICATION2,
+    CLASSIFICATION3,
+    CLASSIFICATION4,
+    CLASSIFICATION5,
+    CLSFITION1_DESC,
+    CLSFITION2_DESC,
+    CLSFITION3_DESC,
+    CLSFITION4_DESC,
+    CLSFITION5_DESC,
+    "New Sales Amount",
+    REP_NUM,
+    REP_LAST_NAME,
+    REP_FIRST_NAME,
+    TERR_NUM,
+    TERR_DESC,
+    COMPANY_NAME,
+    SALES_FORCE_DESC,
+    MARKET_SEGMENT_DESC,
+    REP_FUNCTION_DESC,
+    "Territory Type Code",
+    DISTRICT_DESC,
+    "ZW City",
+    "ZW Country",
+    "ZW Postal Code",
+    "ZW Region",
+    "ZB City",
+    "ZB Country",
+    "ZB Postal Code",
+    "ZB Region",
+    MYR_ID,
+    ORDER_TYPE_GROUP_DESC,
+    BASE_ID,
+    BASE_ID_DESC,
+    RENEWAL_IND,
+    RENEWAL_IND_DESC,
+    "ZB ECMID",
+    "ZB ECM Full Name",
+    "ZW ECMID",
+    "ZW ECM Full Name",
+    "ZW CY Segment L1",
+    "ZW CY Segment L2",
+    "ZB CY Segment L1",
+    "ZB CY Segment L2",
+    "ZW CUST_GROUP_TXT",
+    TR_SASFM_REV_TYPE_DESC,
+    SUBMIT_PAYEE_ID,
+    ZTERRTYP_TXT,
+    Doc_Currency,
+    SalesRegion,
+    USD_New_Sales_Amount,
+    RULE_NEW_RENEWAL_SALE,
+    CHANNEL_MARKER,
+    F5,
+    F6,
+    AWARD_TYPE2,
+    AWARD_TYPE_DESC2,
+    EXTRACT_CMSN_RECORD2,
+    CHANNEL_MARKER2,
+    SALE_AMT_RULE,
+    REPLACED_REV_FLAG_LEGACY,
+    NOTE,
+    CHANGE_DATE,
+    SALES_CHANNEL,
+    SALES_GROUP,
+    REV_CHNL_DESC,
+    CHANNEL_MARKER AS CHANNEL_MARKER_NEW,
+    CHANNEL_MARKER_RNWL
+FROM 
+    New_Sales_Channel_Maker_Payee_Filter_False
+), 
+
+New_Sales_Channel_Maker_Merge_All AS (
+SELECT 
+    * 
+FROM 
+    New_Sales_Channel_Maker_Channel_Marker_formula -- 1508
+UNION ALL
+SELECT 
+    * 
+FROM 
+    New_Sales_Channel_Maker_Channel_Marker_Dup -- 127
+UNION ALL
+SELECT 
+    * 
+FROM 
+    New_Sales_Channel_Maker_inner_join_1 -- 19599 
+UNION ALL
+SELECT 
+    * 
+FROM 
+    New_Sales_Channel_Maker_inner_join_2 -- 2
+), 
+---------------------------------------------------------------------------------------------------------
+
+------------------ Renewal Sales Channel Maker -------------
+Renewal_Sales_Channel_Maker_inner_join_1 AS (
+SELECT 
+    q1.TIME_YEAR_NUM,
+    q1.TIME_MONTH_NUM,
+    q1."Financial Period YYYYMM",
+    q1."ASYM YYYYMM",
+    q1.LINE_OF_BUSINESS,
+    q1."Order Doc Num",
+    q1."Line Item Num",
+    q1.CHARGEBACK_DOC_NUMBER,
+    q1.CHARGEBACK_ITEM_NUMBER,
+    q1.TRACK_DOC_NUMBER,
+    q1.TRACK_S_ORD_ITEM,
+    q1.ORDER_TYPE,
+    q1.AWARD_TYPE,
+    q1.SALES_TYPE,
+    q1.SALES_TYPE_DESC,
+    q1."ZW Customer Number",
+    q1."ZW Customer Desc",
+    q1."ZB Customer Number",
+    q1."ZB Customer Desc",
+    q1.MATL_GROUP,
+    q1.MATERIAL_NUM,
+    q1."UPPER(EDW_SNFL.TRDW.MATERIALDIM.MATERIAL_TXT)",
+    q1.CLASSIFICATION1,
+    q1.CLASSIFICATION2,
+    q1.CLASSIFICATION3,
+    q1.CLASSIFICATION4,
+    q1.CLASSIFICATION5,
+    q1.CLSFITION1_DESC,
+    q1.CLSFITION2_DESC,
+    q1.CLSFITION3_DESC,
+    q1.CLSFITION4_DESC,
+    q1.CLSFITION5_DESC,
+    q1."New Sales Amount",
+    q1.REP_NUM,
+    q1.REP_LAST_NAME,
+    q1.REP_FIRST_NAME,
+    q1.TERR_NUM,
+    q1.TERR_DESC,
+    q1.COMPANY_NAME,
+    q1.SALES_FORCE_DESC,
+    q1.MARKET_SEGMENT_DESC,
+    q1.REP_FUNCTION_DESC,
+    q1."Territory Type Code",
+    q1.DISTRICT_DESC,
+    q1."ZW City",
+    q1."ZW Country",
+    q1."ZW Postal Code",
+    q1."ZW Region",
+    q1."ZB City",
+    q1."ZB Country",
+    q1."ZB Postal Code",
+    q1."ZB Region",
+    q1.MYR_ID,
+    q1.ORDER_TYPE_GROUP_DESC,
+    q1.BASE_ID,
+    q1.BASE_ID_DESC,
+    q1.RENEWAL_IND,
+    q1.RENEWAL_IND_DESC,
+    q1."ZB ECMID",
+    q1."ZB ECM Full Name",
+    q1."ZW ECMID",
+    q1."ZW ECM Full Name",
+    q1."ZW CY Segment L1",
+    q1."ZW CY Segment L2",
+    q1."ZB CY Segment L1",
+    q1."ZB CY Segment L2",
+    q1."ZW CUST_GROUP_TXT",
+    q1.TR_SASFM_REV_TYPE_DESC,
+    q1.SUBMIT_PAYEE_ID,
+    q1.ZTERRTYP_TXT,
+    q1.Doc_Currency,
+    q1.SalesRegion,
+    q1.USD_New_Sales_Amount,
+    q1.RULE_NEW_RENEWAL_SALE,
+    q1.CHANNEL_MARKER,
+    q1.F5,
+    q1.F6,
+    q1.AWARD_TYPE2,
+    q1.AWARD_TYPE_DESC2,
+    q1.EXTRACT_CMSN_RECORD2,
+    q1.CHANNEL_MARKER2,
+    q1.SALE_AMT_RULE,
+    q1.REPLACED_REV_FLAG_LEGACY,
+    q1.NOTE,
+    q1.CHANGE_DATE, 
+    q2.SALES_CHANNEL,
+    q2.SALES_GROUP,
+    q2.REV_CHNL_DESC,
+    q2.CHANNEL_MARKER_NEW,
+    q2.CHANNEL_MARKER_RNWL
+FROM 
+    new_vs_renewal_renewal_filter q1 
+INNER JOIN 
+    New_Renewal_SaleType_Cleaning_Renwal_Sale_Type_1 q2 
+ON 
+    q1."Territory Type Code" = q2.TERR_TYPE 
+    AND 
+    q1.SALES_TYPE = q2.NEW_SALE_TYPE
+-- WHERE q1.CHANNEL_MARKER != 'PAYEE'
+), 
+
+
+Renewal_Sales_Channel_Maker_left_outer_join_1 AS (
+SELECT 
+    q1.TIME_YEAR_NUM,
+    q1.TIME_MONTH_NUM,
+    q1."Financial Period YYYYMM",
+    q1."ASYM YYYYMM",
+    q1.LINE_OF_BUSINESS,
+    q1."Order Doc Num",
+    q1."Line Item Num",
+    q1.CHARGEBACK_DOC_NUMBER,
+    q1.CHARGEBACK_ITEM_NUMBER,
+    q1.TRACK_DOC_NUMBER,
+    q1.TRACK_S_ORD_ITEM,
+    q1.ORDER_TYPE,
+    q1.AWARD_TYPE,
+    q1.SALES_TYPE,
+    q1.SALES_TYPE_DESC,
+    q1."ZW Customer Number",
+    q1."ZW Customer Desc",
+    q1."ZB Customer Number",
+    q1."ZB Customer Desc",
+    q1.MATL_GROUP,
+    q1.MATERIAL_NUM,
+    q1."UPPER(EDW_SNFL.TRDW.MATERIALDIM.MATERIAL_TXT)",
+    q1.CLASSIFICATION1,
+    q1.CLASSIFICATION2,
+    q1.CLASSIFICATION3,
+    q1.CLASSIFICATION4,
+    q1.CLASSIFICATION5,
+    q1.CLSFITION1_DESC,
+    q1.CLSFITION2_DESC,
+    q1.CLSFITION3_DESC,
+    q1.CLSFITION4_DESC,
+    q1.CLSFITION5_DESC,
+    q1."New Sales Amount",
+    q1.REP_NUM,
+    q1.REP_LAST_NAME,
+    q1.REP_FIRST_NAME,
+    q1.TERR_NUM,
+    q1.TERR_DESC,
+    q1.COMPANY_NAME,
+    q1.SALES_FORCE_DESC,
+    q1.MARKET_SEGMENT_DESC,
+    q1.REP_FUNCTION_DESC,
+    q1."Territory Type Code",
+    q1.DISTRICT_DESC,
+    q1."ZW City",
+    q1."ZW Country",
+    q1."ZW Postal Code",
+    q1."ZW Region",
+    q1."ZB City",
+    q1."ZB Country",
+    q1."ZB Postal Code",
+    q1."ZB Region",
+    q1.MYR_ID,
+    q1.ORDER_TYPE_GROUP_DESC,
+    q1.BASE_ID,
+    q1.BASE_ID_DESC,
+    q1.RENEWAL_IND,
+    q1.RENEWAL_IND_DESC,
+    q1."ZB ECMID",
+    q1."ZB ECM Full Name",
+    q1."ZW ECMID",
+    q1."ZW ECM Full Name",
+    q1."ZW CY Segment L1",
+    q1."ZW CY Segment L2",
+    q1."ZB CY Segment L1",
+    q1."ZB CY Segment L2",
+    q1."ZW CUST_GROUP_TXT",
+    q1.TR_SASFM_REV_TYPE_DESC,
+    q1.SUBMIT_PAYEE_ID,
+    q1.ZTERRTYP_TXT,
+    q1.Doc_Currency,
+    q1.SalesRegion,
+    q1.USD_New_Sales_Amount,
+    q1.RULE_NEW_RENEWAL_SALE,
+    q1.CHANNEL_MARKER,
+    q1.F5,
+    q1.F6,
+    q1.AWARD_TYPE2,
+    q1.AWARD_TYPE_DESC2,
+    q1.EXTRACT_CMSN_RECORD2,
+    q1.CHANNEL_MARKER2,
+    q1.SALE_AMT_RULE,
+    q1.REPLACED_REV_FLAG_LEGACY,
+    q1.NOTE,
+    q1.CHANGE_DATE,
+    q2.SALES_CHANNEL,
+    q2.SALES_GROUP,
+    q2.REV_CHNL_DESC,
+    q2.CHANNEL_MARKER_NEW,
+    q2.CHANNEL_MARKER_RNWL
+FROM 
+    new_vs_renewal_renewal_filter q1 
+LEFT JOIN 
+    New_Renewal_SaleType_Cleaning_Renwal_Sale_Type_1 q2 
+ON 
+    q1."Territory Type Code" = q2.TERR_TYPE 
+    AND 
+    q1.SALES_TYPE = q2.NEW_SALE_TYPE
+minus 
+SELECT 
+    * 
+FROM 
+    Renewal_Sales_Channel_Maker_inner_join_1
+-- WHERE q1.CHANNEL_MARKER != 'PAYEE'
+),  
+
+
+Renewal_Sales_Channel_Maker_inner_join_2 AS (
+SELECT 
+    q1.*
+FROM 
+    Renewal_Sales_Channel_Maker_left_outer_join_1 q1
+INNER JOIN 
+    New_Renewal_SaleType_Cleaning_Renwal_Sale_Type_2 q2 
+ON 
+    q1."Territory Type Code" = q2.TERR_TYPE
+),
+
+Renewal_Sales_Channel_Maker_left_outer_join_2 AS(
+SELECT 
+    q1.*
+FROM 
+    Renewal_Sales_Channel_Maker_left_outer_join_1 q1
+LEFT JOIN 
+    New_Renewal_SaleType_Cleaning_Renwal_Sale_Type_2 q2 
+ON 
+    q1."Territory Type Code" = q2.TERR_TYPE
+minus 
+SELECT
+    * 
+FROM 
+    Renewal_Sales_Channel_Maker_inner_join_2
+), 
+
+
+Renewal_Sales_Channel_Maker_Payee_Filter_False AS (
+SELECT 
+    * 
+FROM 
+    Renewal_Sales_Channel_Maker_left_outer_join_2
+WHERE NOT contains(CHANNEL_MARKER, '%PAYEE%') 
+), 
+
+Renewal_Sales_Channel_Maker_Payee_Filter_True AS (
+SELECT 
+    * 
+FROM 
+    Renewal_Sales_Channel_Maker_left_outer_join_2
+minus 
+SELECT
+    * 
+FROM 
+    Renewal_Sales_Channel_Maker_Payee_Filter_False
+), 
+
+Renewal_Sales_Channel_Maker_Channel_Marker_Dup AS(
+SELECT 
+    TIME_YEAR_NUM,
+    TIME_MONTH_NUM,
+    "Financial Period YYYYMM",
+    "ASYM YYYYMM",
+    LINE_OF_BUSINESS,
+    "Order Doc Num",
+    "Line Item Num",
+    CHARGEBACK_DOC_NUMBER,
+    CHARGEBACK_ITEM_NUMBER,
+    TRACK_DOC_NUMBER,
+    TRACK_S_ORD_ITEM,
+    ORDER_TYPE,
+    AWARD_TYPE,
+    SALES_TYPE,
+    SALES_TYPE_DESC,
+    "ZW Customer Number",
+    "ZW Customer Desc",
+    "ZB Customer Number",
+    "ZB Customer Desc",
+    MATL_GROUP,
+    MATERIAL_NUM,
+    "UPPER(EDW_SNFL.TRDW.MATERIALDIM.MATERIAL_TXT)",
+    CLASSIFICATION1,
+    CLASSIFICATION2,
+    CLASSIFICATION3,
+    CLASSIFICATION4,
+    CLASSIFICATION5,
+    CLSFITION1_DESC,
+    CLSFITION2_DESC,
+    CLSFITION3_DESC,
+    CLSFITION4_DESC,
+    CLSFITION5_DESC,
+    "New Sales Amount",
+    REP_NUM,
+    REP_LAST_NAME,
+    REP_FIRST_NAME,
+    TERR_NUM,
+    TERR_DESC,
+    COMPANY_NAME,
+    SALES_FORCE_DESC,
+    MARKET_SEGMENT_DESC,
+    REP_FUNCTION_DESC,
+    "Territory Type Code",
+    DISTRICT_DESC,
+    "ZW City",
+    "ZW Country",
+    "ZW Postal Code",
+    "ZW Region",
+    "ZB City",
+    "ZB Country",
+    "ZB Postal Code",
+    "ZB Region",
+    MYR_ID,
+    ORDER_TYPE_GROUP_DESC,
+    BASE_ID,
+    BASE_ID_DESC,
+    RENEWAL_IND,
+    RENEWAL_IND_DESC,
+    "ZB ECMID",
+    "ZB ECM Full Name",
+    "ZW ECMID",
+    "ZW ECM Full Name",
+    "ZW CY Segment L1",
+    "ZW CY Segment L2",
+    "ZB CY Segment L1",
+    "ZB CY Segment L2",
+    "ZW CUST_GROUP_TXT",
+    TR_SASFM_REV_TYPE_DESC,
+    SUBMIT_PAYEE_ID,
+    ZTERRTYP_TXT,
+    Doc_Currency,
+    SalesRegion,
+    USD_New_Sales_Amount,
+    RULE_NEW_RENEWAL_SALE,
+    CHANNEL_MARKER,
+    F5,
+    F6,
+    AWARD_TYPE2,
+    AWARD_TYPE_DESC2,
+    EXTRACT_CMSN_RECORD2,
+    CHANNEL_MARKER2,
+    SALE_AMT_RULE,
+    REPLACED_REV_FLAG_LEGACY,
+    NOTE,
+    CHANGE_DATE,
+    SALES_CHANNEL,
+    SALES_GROUP,
+    REV_CHNL_DESC,
+    'Dup' AS CHANNEL_MARKER_NEW,
+    CHANNEL_MARKER_RNWL
+FROM 
+    Renewal_Sales_Channel_Maker_Payee_Filter_True
+), 
+
+Renewal_Sales_Channel_Maker_Channel_Marker_formula AS (
+SELECT 
+    TIME_YEAR_NUM,
+    TIME_MONTH_NUM,
+    "Financial Period YYYYMM",
+    "ASYM YYYYMM",
+    LINE_OF_BUSINESS,
+    "Order Doc Num",
+    "Line Item Num",
+    CHARGEBACK_DOC_NUMBER,
+    CHARGEBACK_ITEM_NUMBER,
+    TRACK_DOC_NUMBER,
+    TRACK_S_ORD_ITEM,
+    ORDER_TYPE,
+    AWARD_TYPE,
+    SALES_TYPE,
+    SALES_TYPE_DESC,
+    "ZW Customer Number",
+    "ZW Customer Desc",
+    "ZB Customer Number",
+    "ZB Customer Desc",
+    MATL_GROUP,
+    MATERIAL_NUM,
+    "UPPER(EDW_SNFL.TRDW.MATERIALDIM.MATERIAL_TXT)",
+    CLASSIFICATION1,
+    CLASSIFICATION2,
+    CLASSIFICATION3,
+    CLASSIFICATION4,
+    CLASSIFICATION5,
+    CLSFITION1_DESC,
+    CLSFITION2_DESC,
+    CLSFITION3_DESC,
+    CLSFITION4_DESC,
+    CLSFITION5_DESC,
+    "New Sales Amount",
+    REP_NUM,
+    REP_LAST_NAME,
+    REP_FIRST_NAME,
+    TERR_NUM,
+    TERR_DESC,
+    COMPANY_NAME,
+    SALES_FORCE_DESC,
+    MARKET_SEGMENT_DESC,
+    REP_FUNCTION_DESC,
+    "Territory Type Code",
+    DISTRICT_DESC,
+    "ZW City",
+    "ZW Country",
+    "ZW Postal Code",
+    "ZW Region",
+    "ZB City",
+    "ZB Country",
+    "ZB Postal Code",
+    "ZB Region",
+    MYR_ID,
+    ORDER_TYPE_GROUP_DESC,
+    BASE_ID,
+    BASE_ID_DESC,
+    RENEWAL_IND,
+    RENEWAL_IND_DESC,
+    "ZB ECMID",
+    "ZB ECM Full Name",
+    "ZW ECMID",
+    "ZW ECM Full Name",
+    "ZW CY Segment L1",
+    "ZW CY Segment L2",
+    "ZB CY Segment L1",
+    "ZB CY Segment L2",
+    "ZW CUST_GROUP_TXT",
+    TR_SASFM_REV_TYPE_DESC,
+    SUBMIT_PAYEE_ID,
+    ZTERRTYP_TXT,
+    Doc_Currency,
+    SalesRegion,
+    USD_New_Sales_Amount,
+    RULE_NEW_RENEWAL_SALE,
+    CHANNEL_MARKER,
+    F5,
+    F6,
+    AWARD_TYPE2,
+    AWARD_TYPE_DESC2,
+    EXTRACT_CMSN_RECORD2,
+    CHANNEL_MARKER2,
+    SALE_AMT_RULE,
+    REPLACED_REV_FLAG_LEGACY,
+    NOTE,
+    CHANGE_DATE,
+    SALES_CHANNEL,
+    SALES_GROUP,
+    REV_CHNL_DESC,
+    CHANNEL_MARKER AS CHANNEL_MARKER_NEW ,
+    CHANNEL_MARKER_RNWL
+FROM 
+    Renewal_Sales_Channel_Maker_Payee_Filter_False
+), 
+
+Renewal_Sales_Channel_Maker_Merge_All AS (
+SELECT 
+    * 
+FROM 
+    Renewal_Sales_Channel_Maker_Channel_Marker_formula -- 1508
+UNION ALL
+SELECT 
+    * 
+FROM 
+    Renewal_Sales_Channel_Maker_Channel_Marker_Dup -- 127
+UNION ALL
+SELECT 
+    * 
+FROM 
+    Renewal_Sales_Channel_Maker_inner_join_1 -- 19599 
+UNION ALL
+SELECT 
+    * 
+FROM 
+    Renewal_Sales_Channel_Maker_inner_join_2 -- 2
+), 
+
+Final_Merge_New_Renewal AS (
+SELECT 
+    * 
+FROM 
+    New_Sales_Channel_Maker_Merge_All
+UNION
+SELECT 
+    * 
+FROM 
+    Renewal_Sales_Channel_Maker_Merge_All
+), 
+
+new_renewal_sales_inner_join AS (
+SELECT 
+    q1.*
+FROM 
+    Final_Merge_New_Renewal q1
+LEFT JOIN 
+    MYDATASPACE.A208043_FINANCE_CONSREVENUE_UAT1.SRU_SALES_CMSNV_TC_TERR_TYPE_LKP$ q2
+ON 
+    q1."Territory Type Code" = q2.TERR_TYPE
+), 
+-------------------------------------------------------------------------------------------------------------------------
+
+------------------- Varicent Cleanup Container ---------------------------
+Varicent_Cleanup_Container_Filter_renewal_formula AS (
+SELECT 
+        TIME_YEAR_NUM,
+        TIME_MONTH_NUM,
+        "Financial Period YYYYMM",
+        "ASYM YYYYMM",
+        LINE_OF_BUSINESS,
+        "Order Doc Num",
+        "Line Item Num",
+        CHARGEBACK_DOC_NUMBER,
+        CHARGEBACK_ITEM_NUMBER,
+        TRACK_DOC_NUMBER,
+        TRACK_S_ORD_ITEM,
+        ORDER_TYPE,
+        AWARD_TYPE,
+        SALES_TYPE,
+        SALES_TYPE_DESC,
+        "ZW Customer Number",
+        "ZW Customer Desc",
+        "ZB Customer Number",
+        "ZB Customer Desc",
+        MATL_GROUP,
+        MATERIAL_NUM,
+        "UPPER(EDW_SNFL.TRDW.MATERIALDIM.MATERIAL_TXT)",
+        CLASSIFICATION1,
+        CLASSIFICATION2,
+        CLASSIFICATION3,
+        CLASSIFICATION4,
+        CLASSIFICATION5,
+        CLSFITION1_DESC,
+        CLSFITION2_DESC,
+        CLSFITION3_DESC,
+        CLSFITION4_DESC,
+        CLSFITION5_DESC,
+        "New Sales Amount",
+        REP_NUM,
+        REP_LAST_NAME,
+        REP_FIRST_NAME,
+        TERR_NUM,
+        TERR_DESC,
+        COMPANY_NAME,
+        SALES_FORCE_DESC,
+        MARKET_SEGMENT_DESC,
+        REP_FUNCTION_DESC,
+        "Territory Type Code",
+        DISTRICT_DESC,
+        "ZW City",
+        "ZW Country",
+        "ZW Postal Code",
+        "ZW Region",
+        "ZB City",
+        "ZB Country",
+        "ZB Postal Code",
+        "ZB Region",
+        MYR_ID,
+        ORDER_TYPE_GROUP_DESC,
+        BASE_ID,
+        BASE_ID_DESC,
+        RENEWAL_IND,
+        RENEWAL_IND_DESC,
+        "ZB ECMID",
+        "ZB ECM Full Name",
+        "ZW ECMID",
+        "ZW ECM Full Name",
+        "ZW CY Segment L1",
+        "ZW CY Segment L2",
+        "ZB CY Segment L1",
+        "ZB CY Segment L2",
+        "ZW CUST_GROUP_TXT",
+        TR_SASFM_REV_TYPE_DESC,
+        SUBMIT_PAYEE_ID,
+        ZTERRTYP_TXT,
+        Doc_Currency,
+        CASE 
+            WHEN TRY_CAST(TERR_NUM AS INT) IS NOT NULL THEN LEFT(TERR_NUM, LEN(TERR_NUM) - 2) + '00'
+            ELSE SalesRegion
+        END AS SalesRegion,
+        USD_New_Sales_Amount,
+        RULE_NEW_RENEWAL_SALE,
+        CASE  
+            WHEN CHANNEL_MARKER_NEW IS NULL THEN CHANNEL_MARKER_RNWL
+            ELSE CHANNEL_MARKER_NEW
+        END AS CHANNEL_MARKER,
+        F5,
+        F6,
+        AWARD_TYPE2,
+        AWARD_TYPE_DESC2,
+        EXTRACT_CMSN_RECORD2,
+        CHANNEL_MARKER2,
+        SALE_AMT_RULE,
+        REPLACED_REV_FLAG_LEGACY,
+        NOTE,
+        CHANGE_DATE,
+        SALES_CHANNEL,
+        SALES_GROUP,
+        REV_CHNL_DESC,
+        CHANNEL_MARKER_NEW,
+        CHANNEL_MARKER_RNWL,
+        NULL AS ADJUSTMENT_ID,
+        NULL AS ADJUSTMENT_REASON,
+        'Cmsn' AS SALES_CODE
+    FROM 
+        new_renewal_sales_inner_join
+), 
+
+Varicent_Cleanup_Container_Classification_Filter_True AS ( 
+SELECT 
+    * 
+FROM 
+    Varicent_Cleanup_Container_Filter_renewal_formula
+WHERE 
+    CLASSIFICATION5 IS null 
+    OR 
+    CLASSIFICATION5 != 'L5_L0228_FP'
+),
+
+
+Varicent_Cleanup_Container_Max_Financial_Period AS (
+SELECT
+    max("Financial Period YYYYMM") as MAX_FINANCIAL_PERIOD
+FROM 
+    Varicent_Cleanup_Container_Filter_renewal_formula
+),
+
+----------------------------------------------------------------------------------
+
+------------------ Orders Data (Print/FindLaw) ----------------------
+Orders_Data_Container_inner_join_1 AS(
+SELECT 
+    "SALESFACT"."DOC_NUMBER",
+	"SALESFACT"."S_ORD_ITEM",
+	"SALESFACT"."CREATEDON",
+	"TRUNC"("SALESFACT"."CREATEDON" / 100) AS "Financial Period YYYYMM",
+	"SALESFACT"."NET_VALUE",
+	"CUSTZW"."CUSTOMER_NUMBER" AS "ZWCustNumber",
+	"CUSTZW"."NAME" AS "ZWCustName",
+	"CUSTZB"."CUSTOMER_NUMBER" AS "ZBCustNumber",
+	"CUSTZB"."NAME" AS "ZBCustName",
+	"MTRL"."MATERIAL_NUM",
+	"MTRL"."MATL_GROUP",
+	"MTRL"."MATERIAL_TXT",
+	"MTRL"."MATL_GROUP_TXT",
+	"MTRL"."MATL_TYPE_TXT",
+	"MTRL"."CLASSIFICATION1",
+	"MTRL"."CLASSIFICATION2",
+	"MTRL"."CLASSIFICATION3",
+	"MTRL"."CLASSIFICATION4",
+	"MTRL"."CLASSIFICATION5",
+	"MTRL"."CLSFITION1_DESC",
+	"MTRL"."CLSFITION2_DESC",
+	"MTRL"."CLSFITION3_DESC",
+	"MTRL"."CLSFITION4_DESC",
+	"MTRL"."CLSFITION5_DESC",
+	"SALETYPE"."ZREVCHANL_TXT",
+	"SALETYPE"."ZREVTYPE_TXT",
+	"SALETYPE"."ZORDSRCE_TXT",
+	"SALETYPE"."ORD_REASON_TXT",
+	"SALESSTATUS"."STS_ITM",
+	"SALESSTATUS"."ZABSTK",
+	"SALESSTATUS"."REASON_REJ",
+	"SALESSTATUS"."DEL_BLOCK",
+	"SALESAREA"."SALESORG" AS "LINE_OF_BUSINESS",
+	"DOCTYPE"."DOC_CATEG_TXT",
+	"DOCTYPE"."ZQUOTETYP",
+	"DOCTYPE"."DOC_TYPE",
+	"DOCTYPE"."ZKONDM",
+	"DOCTYPE"."RENEWABLE_FLAG",
+	"DOCTYPE"."SUBSCRIBABLE_FLAG",
+	case 
+			when "SALESAREA"."SALESORG" in ('WEST', 'CARS') AND "SALETYPE"."ZREVTYPE" = 'N' AND "SALESSTATUS"."ZABSTK" <> 'C' AND "SALESSTATUS"."STS_ITM" = 'C' AND "SALESSTATUS"."DEL_BLOCK" = ' ' AND "SALETYPE"."ZORDSRCE" <> '09' AND "SALESFACT"."NET_VALUE" <> 0 AND (("DOCTYPE"."DOC_TYPE" in ('ZCR', 'ZDR', 'ZFD2', 'ZJU', 'ZNEW', 'ZRE', 'ZKE') AND "SALETYPE"."ZREVCHANL" in ('83', '04')) OR ("DOCTYPE"."DOC_TYPE" in ('ZCR', 'ZDR', 'ZFD2', 'ZJU', 'ZNEW', 'ZRE') AND "SALETYPE"."ZREVCHANL" in ('03', '07', '32', '02'))) then 'Y' 
+			else 'N' 
+		end AS "LEGALSALE",
+	case 
+			when "SALESFACT"."SECURITY_ID" in (1, 19, 20, 21, 22) AND "MTRL"."CLASSIFICATION5" = 'L5_L0228_FP' then 'Y' 
+			else 'N' 
+		end AS "FINDLAWSALE",
+	"DOCTYPE"."DOC_TYPE_TXT",
+	"CUSTZW"."CITY" AS "ZW City",
+	"CUSTZW"."REGION" AS "ZW Region",
+	"CUSTZW"."COUNTRY" AS "ZW Country",
+	"CUSTZW"."POSTAL_CD" AS "ZW Postal Code",
+	"CUSTZW"."CUST_GROUP_TXT" AS "ZW CUST_GROUP_TXT",
+	"CUSTZB"."CITY" AS "ZB City",
+	"CUSTZB"."REGION" AS "ZB Region",
+	"CUSTZB"."COUNTRY" AS "ZB Country",
+	"CUSTZB"."POSTAL_CD" AS "ZB Postal Code",
+	"ZW CY FROZEN"."ECM_PARTY_ID" AS "ZW ECMID",
+	"ZW CY FROZEN"."FULL_NAME" AS "ZW ECM Full Name",
+	"ZW CY FROZEN"."PARTY_TR_MARKET_SEGM_L1" AS "ZW CY Segment L1",
+	"ZW CY FROZEN"."PARTY_TR_MARKET_SEGM_L2" AS "ZW CY Segment L2",
+	EDW_SNFL."TRMDM"."ECM_CY_FROZEN_SEGMENT"."ECM_PARTY_ID" AS "ZB ECMID",
+	EDW_SNFL."TRMDM"."ECM_CY_FROZEN_SEGMENT"."FULL_NAME" AS "ZB ECM Full Name",
+	EDW_SNFL."TRMDM"."ECM_CY_FROZEN_SEGMENT"."PARTY_TR_MARKET_SEGM_L1" AS "ZB CY Segment L1",
+	EDW_SNFL."TRMDM"."ECM_CY_FROZEN_SEGMENT"."PARTY_TR_MARKET_SEGM_L2" AS "ZB CY Segment L2",
+	"SALESFACT"."DOC_CURRCY" AS "Doc Currency",
+	EDW_SNFL."TRDW"."TR_SAS_FM_REV_TYPE_DIM"."TR_SASFM_REV_TYPE_DESC" 
+FROM 
+    EDW_SNFL."TRDW"."SALESORDER_FACT" "SALESFACT" 
+	INNER JOIN EDW_SNFL."TRDW"."CUSTOMER" "CUSTZW" ON "SALESFACT"."ZWL_RPT_ORG" = "CUSTZW"."CUSTOMER_KEY" 
+	INNER JOIN EDW_SNFL."TRDW"."CUSTOMER" "CUSTZB" ON "SALESFACT"."ZWL_SUB_LOC" = "CUSTZB"."CUSTOMER_KEY" 
+	INNER JOIN EDW_SNFL."TRDW"."MATERIALDIM" "MTRL" ON "SALESFACT"."MAT_KEY" = "MTRL"."MATERIAL_KEY" 
+	INNER JOIN EDW_SNFL."TRDW"."SALESTYPEDIM" "SALETYPE" ON "SALESFACT"."SALES_TYPE_KEY" = "SALETYPE"."SALES_TYPE_KEY" 
+	INNER JOIN EDW_SNFL."TRDW"."DOCTYPEDIM" "DOCTYPE" ON "SALESFACT"."DOCUMENT_TYPE_KEY" = "DOCTYPE"."DOCUMENT_TYPE_KEY" 
+	INNER JOIN EDW_SNFL."TRDW"."SALESSTATUSDIM" "SALESSTATUS" ON "SALESSTATUS"."SALES_STATUS_KEY" = "SALESFACT"."ORDER_STATUS_KEY" 
+	INNER JOIN EDW_SNFL."TRDW"."SALESAREADIM" "SALESAREA" ON "SALESAREA"."SALES_AREA_KEY" = "SALESFACT"."SALES_AREA_KEY" 
+	LEFT JOIN EDW_SNFL."TRDW"."TR_SAS_FM_REV_TYPE_DIM" ON "MTRL"."REV_TYPE" = EDW_SNFL."TRDW"."TR_SAS_FM_REV_TYPE_DIM"."TR_SASFM_REV_TYPE_CODE" 
+	LEFT JOIN EDW_SNFL."TRMDM"."ECM_CY_FROZEN_SEGMENT" ON "CUSTZB"."CUSTOMER_NUMBER" = EDW_SNFL."TRMDM"."ECM_CY_FROZEN_SEGMENT"."SRC_CUST_ID" 
+	LEFT JOIN EDW_SNFL."TRMDM"."ECM_CY_FROZEN_SEGMENT" "ZW CY FROZEN" ON "CUSTZW"."CUSTOMER_NUMBER" = "ZW CY FROZEN"."SRC_CUST_ID" 
+WHERE 
+    (("SALESAREA"."SALESORG" in ('WEST', 'CARS') 
+    AND "SALETYPE"."ZREVTYPE" = 'N' 
+    AND "SALESSTATUS"."ZABSTK" <> 'C' 
+    AND "SALESSTATUS"."STS_ITM" = 'C' 
+    AND "SALESSTATUS"."DEL_BLOCK" = ' ' 
+    AND "SALETYPE"."ZORDSRCE" <> '09' 
+    AND "SALESFACT"."NET_VALUE" <> 0 
+    AND (("DOCTYPE"."DOC_TYPE" in ('ZCR', 'ZDR', 'ZFD2', 'ZJU', 'ZNEW', 'ZRE', 'ZKE') 
+    AND "SALETYPE"."ZREVCHANL" in ('83', '04')) OR ("DOCTYPE"."DOC_TYPE" in ('ZCR', 'ZDR', 'ZFD2', 'ZJU', 'ZNEW', 'ZRE') 
+    AND "SALETYPE"."ZREVCHANL" in ('03', '07', '32', '02')))) OR ("MTRL"."CLASSIFICATION5" = 'L5_L0228_FP') OR ("MTRL"."CLASSIFICATION3" = 'L3_L084_FP')) 
+	AND "TRUNC"("SALESFACT"."CREATEDON" / 10000) = 2024 
+	AND "ZW CY FROZEN"."SRC_SYS_NAME" = 'ENTWRP' 
+	AND EDW_SNFL."TRMDM"."ECM_CY_FROZEN_SEGMENT"."SRC_SYS_NAME" = 'ENTWRP'
+    AND  (("MTRL"."CLASSIFICATION1" IS null) OR "MTRL"."CLASSIFICATION1" != 'L1_500_FP')
+    AND MONTH(CURRENT_DATE) = SUBSTR("TRUNC"("SALESFACT"."CREATEDON" / 100), 5,6)
+    AND (("MTRL"."CLSFITION2_DESC" IS null) OR "MTRL"."CLSFITION2_DESC" != 'RISK')
+    AND (("MTRL"."CLSFITION2_DESC" IS null) OR "MTRL"."CLSFITION2_DESC" != 'WESTLAW')
+), 
+
+
+Orders_Data_Container_inner_join_2 AS (
+SELECT 
+    q1.*,
+    q2.W_FROM_CURCY_CODE,
+    q2.W_TO_CURCY_CODE,
+    q2.CY_YEAR,
+    q2.CY_PLAN_RATE,
+    q2.PY_YEAR,
+    q2.PY_PLAN_RATE
+FROM 
+    Orders_Data_Container_inner_join_1 q1 
+INNER JOIN 
+    Varicent_Data_Container_Currency_Data q2
+ON 
+    q1."Doc Currency" = q2.W_FROM_CURCY_CODE), 
+
+
+
+Orders_Data_Container_left_join_1 AS (
+SELECT 
+    q1.*,
+    q2.W_FROM_CURCY_CODE,
+    q2.W_TO_CURCY_CODE,
+    q2.CY_YEAR,
+    q2.CY_PLAN_RATE,
+    q2.PY_YEAR,
+    q2.PY_PLAN_RATE
+FROM 
+    Orders_Data_Container_inner_join_1 q1 
+LEFT JOIN 
+    Varicent_Data_Container_Currency_Data q2
+ON 
+    q1."Doc Currency" = q2.W_FROM_CURCY_CODE
+minus 
+SELECT 
+    * 
+FROM 
+    Orders_Data_Container_inner_join_2
+), 
+
+Orders_Data_Container_usd_to_usd AS (
+SELECT 
+    DOC_NUMBER,
+    S_ORD_ITEM,
+    CREATEDON,
+    "Financial Period YYYYMM",
+    NET_VALUE,
+    "ZWCustNumber",
+    "ZWCustName",
+    "ZBCustNumber",
+    "ZBCustName",
+    MATERIAL_NUM,
+    MATL_GROUP,
+    MATERIAL_TXT,
+    MATL_GROUP_TXT,
+    MATL_TYPE_TXT,
+    CLASSIFICATION1,
+    CLASSIFICATION2,
+    CLASSIFICATION3,
+    CLASSIFICATION4,
+    CLASSIFICATION5,
+    CLSFITION1_DESC,
+    CLSFITION2_DESC,
+    CLSFITION3_DESC,
+    CLSFITION4_DESC,
+    CLSFITION5_DESC,
+    ZREVCHANL_TXT,
+    ZREVTYPE_TXT,
+    ZORDSRCE_TXT,
+    ORD_REASON_TXT,
+    STS_ITM,
+    ZABSTK,
+    REASON_REJ,
+    DEL_BLOCK,
+    LINE_OF_BUSINESS,
+    DOC_CATEG_TXT,
+    ZQUOTETYP,
+    DOC_TYPE,
+    ZKONDM,
+    RENEWABLE_FLAG,
+    SUBSCRIBABLE_FLAG,
+    LEGALSALE,
+    FINDLAWSALE,
+    DOC_TYPE_TXT,
+    "ZW City",
+    "ZW Region",
+    "ZW Country",
+    "ZW Postal Code",
+    "ZW CUST_GROUP_TXT",
+    "ZB City",
+    "ZB Region",
+    "ZB Country",
+    "ZB Postal Code",
+    "ZW ECMID",
+    "ZW ECM Full Name",
+    "ZW CY Segment L1",
+    "ZW CY Segment L2",
+    "ZB ECMID",
+    "ZB ECM Full Name",
+    "ZB CY Segment L1",
+    "ZB CY Segment L2",
+    "Doc Currency",
+    TR_SASFM_REV_TYPE_DESC,
+    W_FROM_CURCY_CODE,
+    W_TO_CURCY_CODE,
+    CY_YEAR,
+    CY_PLAN_RATE,
+    PY_YEAR,
+    PY_PLAN_RATE, 
+    NET_VALUE AS USD_New_Sales_Amount
+FROM 
+    Orders_Data_Container_left_join_1
+), 
+
+
+Orders_Data_Container_non_usd_to_usd AS (
+SELECT 
+    DOC_NUMBER,
+    S_ORD_ITEM,
+    CREATEDON,
+    "Financial Period YYYYMM",
+    NET_VALUE,
+    "ZWCustNumber",
+    "ZWCustName",
+    "ZBCustNumber",
+    "ZBCustName",
+    MATERIAL_NUM,
+    MATL_GROUP,
+    MATERIAL_TXT AS "MATERIAL DESC",
+    MATL_GROUP_TXT,
+    MATL_TYPE_TXT,
+    CLASSIFICATION1,
+    CLASSIFICATION2,
+    CLASSIFICATION3,
+    CLASSIFICATION4,
+    CLASSIFICATION5,
+    CLSFITION1_DESC,
+    CLSFITION2_DESC,
+    CLSFITION3_DESC,
+    CLSFITION4_DESC,
+    CLSFITION5_DESC,
+    ZREVCHANL_TXT,
+    ZREVTYPE_TXT,
+    ZORDSRCE_TXT,
+    ORD_REASON_TXT,
+    STS_ITM,
+    ZABSTK,
+    REASON_REJ,
+    DEL_BLOCK,
+    LINE_OF_BUSINESS,
+    DOC_CATEG_TXT,
+    ZQUOTETYP,
+    DOC_TYPE,
+    ZKONDM,
+    RENEWABLE_FLAG,
+    SUBSCRIBABLE_FLAG,
+    LEGALSALE,
+    FINDLAWSALE,
+    DOC_TYPE_TXT,
+    "ZW City",
+    "ZW Region",
+    "ZW Country",
+    "ZW Postal Code",
+    "ZW CUST_GROUP_TXT",
+    "ZB City",
+    "ZB Region",
+    "ZB Country",
+    "ZB Postal Code",
+    "ZW ECMID",
+    "ZW ECM Full Name",
+    "ZW CY Segment L1",
+    "ZW CY Segment L2",
+    "ZB ECMID",
+    "ZB ECM Full Name",
+    "ZB CY Segment L1",
+    "ZB CY Segment L2",
+    "Doc Currency",
+    TR_SASFM_REV_TYPE_DESC,
+    W_FROM_CURCY_CODE,
+    W_TO_CURCY_CODE,
+    CY_YEAR,
+    CY_PLAN_RATE,
+    PY_YEAR,
+    PY_PLAN_RATE, 
+    ROUND(NET_VALUE * CY_PLAN_RATE, 2) AS USD_New_Sales_Amount
+FROM 
+    Orders_Data_Container_inner_join_2
+), 
+
+
+Orders_Data_Container_Merge AS (
+SELECT 
+    * 
+FROM 
+    Orders_Data_Container_usd_to_usd
+UNION 
+SELECT 
+    * 
+FROM 
+    Orders_Data_Container_non_usd_to_usd
+), 
+
+Orders_Data_Container_New_Columns_Add AS (
+SELECT
+    DOC_NUMBER,
+    S_ORD_ITEM,
+    CREATEDON,
+    "Financial Period YYYYMM",
+    NET_VALUE,
+    "ZWCustNumber",
+    "ZWCustName",
+    "ZBCustNumber",
+    "ZBCustName",
+    MATERIAL_NUM,
+    MATL_GROUP,
+    MATERIAL_TXT AS "MATERIAL DESC",
+    MATL_GROUP_TXT,
+    MATL_TYPE_TXT,
+    CLASSIFICATION1,
+    CLASSIFICATION2,
+    CLASSIFICATION3,
+    CLASSIFICATION4,
+    CLASSIFICATION5,
+    CLSFITION1_DESC,
+    CLSFITION2_DESC,
+    CLSFITION3_DESC,
+    CLSFITION4_DESC,
+    CLSFITION5_DESC,
+    ZREVCHANL_TXT,
+    ZREVTYPE_TXT,
+    ZORDSRCE_TXT,
+    ORD_REASON_TXT,
+    STS_ITM,
+    ZABSTK,
+    REASON_REJ,
+    DEL_BLOCK,
+    LINE_OF_BUSINESS,
+    DOC_CATEG_TXT,
+    ZQUOTETYP,
+    DOC_TYPE,
+    ZKONDM,
+    RENEWABLE_FLAG,
+    SUBSCRIBABLE_FLAG,
+    LEGALSALE,
+    FINDLAWSALE,
+    "ZW City",
+    "ZW Region",
+    "ZW Country",
+    "ZW Postal Code",
+    "ZW CUST_GROUP_TXT",
+    "ZB City",
+    "ZB Region",
+    "ZB Country",
+    "ZB Postal Code",
+    "ZW ECMID",
+    "ZW ECM Full Name",
+    "ZW CY Segment L1",
+    "ZW CY Segment L2",
+    "ZB ECMID",
+    "ZB ECM Full Name",
+    "ZB CY Segment L1",
+    "ZB CY Segment L2",
+    "Doc Currency",
+    TR_SASFM_REV_TYPE_DESC,
+    W_FROM_CURCY_CODE,
+    W_TO_CURCY_CODE,
+    CY_YEAR,
+    CY_PLAN_RATE,
+    PY_YEAR,
+    PY_PLAN_RATE, 
+    ROUND(NET_VALUE * CY_PLAN_RATE, 2) AS USD_New_Sales_Amount,
+    SUBSTR("Financial Period YYYYMM",1,4) AS TIME_YEAR_NUM,
+    SUBSTR("Financial Period YYYYMM",5,6) AS TIME_MONTH_NUM,
+    CASE 
+        WHEN LEGALSALE = 'Y' THEN 'Orders - SRU'
+        ELSE 'Orders - FindLaw' 
+    End AS "Sales Code", 
+    'New' AS NEW_RENEWAL_SALE,
+    'Rollup' AS CHANNEL_MARKER,
+    'N' AS RENEWAL_IND,
+    'NON RENEWAL' AS RENEWAL_IND_DESC,
+    "Financial Period YYYYMM" AS "ASYM YYYYMM",
+    CASE 
+        WHEN DOC_TYPE_TXT = 'New Order' THEN 'NEW'
+        WHEN DOC_TYPE_TXT = 'Consignment Issue' THEN 'NEW'
+        WHEN DOC_TYPE_TXT = 'Credit Memo Request' THEN 'CREDIT'
+        WHEN DOC_TYPE_TXT = 'Debit Memo Request' THEN 'DEBIT'
+        WHEN DOC_TYPE_TXT = 'FD2 FG New Ord ShpTo' THEN 'NEW'
+        WHEN DOC_TYPE_TXT = 'Junk Returns' THEN 'RETURN'
+        WHEN DOC_TYPE_TXT = 'Returns' THEN 'RETURN'
+        ELSE DOC_TYPE_TXT
+    END AS DOC_TYPE_TXT,
+    CASE 
+        WHEN ZREVCHANL_TXT = 'Internet' THEN 'INTERNET NEW SALE'
+        WHEN ZREVCHANL_TXT = 'Direct Mail' THEN 'DM NEW SALE'
+        WHEN ZREVCHANL_TXT = 'WEG - Internet' THEN 'INTERNET NEW SALE'
+        ELSE UPPER(ZREVCHANL_TXT)
+    END AS SALES_TYPE,
+    CASE 
+        WHEN ZREVCHANL_TXT = 'Internet' THEN 'INTERNET NEW SALE'
+        WHEN ZREVCHANL_TXT = 'Direct Mail' THEN 'DIRECT MAIL NEW SALE'
+        WHEN ZREVCHANL_TXT = 'WEG - Internet' THEN 'INTERNET NEW SALE'
+        ELSE UPPER(ZREVCHANL_TXT)
+    END AS SALES_TYPE_DESC
+FROM 
+    Orders_Data_Container_Merge
+),
+
+
+Orders_Data_Container_Max_Financial_Period_Add AS (
+SELECT 
+    q1.*,
+    q2.MAX_FINANCIAL_PERIOD AS MAX_FINANCIAL_PERIOD
+FROM 
+    Orders_Data_Container_New_Columns_Add q1
+CROSS JOIN 
+    Varicent_Cleanup_Container_Max_Financial_Period q2
+),
+
+
+Orders_Data_Container_Financial_Period_Filter_True AS (
+SELECT
+    DOC_NUMBER,
+    S_ORD_ITEM,
+    CREATEDON,
+    "Financial Period YYYYMM",
+    NET_VALUE,
+    "ZWCustNumber",
+    "ZWCustName",
+    "ZBCustNumber",
+    "ZBCustName",
+    MATERIAL_NUM,
+    MATL_GROUP,
+    "MATERIAL DESC",
+    MATL_GROUP_TXT,
+    MATL_TYPE_TXT,
+    CLASSIFICATION1,
+    CLASSIFICATION2,
+    CLASSIFICATION3,
+    CLASSIFICATION4,
+    CLASSIFICATION5,
+    CLSFITION1_DESC,
+    CLSFITION2_DESC,
+    CLSFITION3_DESC,
+    CLSFITION4_DESC,
+    CLSFITION5_DESC,
+    ZREVCHANL_TXT,
+    ZREVTYPE_TXT,
+    ZORDSRCE_TXT,
+    ORD_REASON_TXT,
+    STS_ITM,
+    ZABSTK,
+    REASON_REJ,
+    DEL_BLOCK,
+    LINE_OF_BUSINESS,
+    DOC_CATEG_TXT,
+    ZQUOTETYP,
+    DOC_TYPE,
+    ZKONDM,
+    RENEWABLE_FLAG,
+    SUBSCRIBABLE_FLAG,
+    LEGALSALE,
+    FINDLAWSALE,
+    "ZW City",
+    "ZW Region",
+    "ZW Country",
+    "ZW Postal Code",
+    "ZW CUST_GROUP_TXT",
+    "ZB City",
+    "ZB Region",
+    "ZB Country",
+    "ZB Postal Code",
+    "ZW ECMID",
+    "ZW ECM Full Name",
+    "ZW CY Segment L1",
+    "ZW CY Segment L2",
+    "ZB ECMID",
+    "ZB ECM Full Name",
+    "ZB CY Segment L1",
+    "ZB CY Segment L2",
+    "Doc Currency",
+    TR_SASFM_REV_TYPE_DESC,
+    W_FROM_CURCY_CODE,
+    W_TO_CURCY_CODE,
+    CY_YEAR,
+    CY_PLAN_RATE,
+    PY_YEAR,
+    PY_PLAN_RATE, 
+    USD_New_Sales_Amount,
+    TIME_YEAR_NUM,
+    TIME_MONTH_NUM,
+    "Sales Code", 
+    NEW_RENEWAL_SALE,
+    CHANNEL_MARKER,
+    RENEWAL_IND,
+    RENEWAL_IND_DESC,
+    "Financial Period YYYYMM" AS "ASYM YYYYMM",
+    DOC_TYPE_TXT,
+    SALES_TYPE,
+    SALES_TYPE_DESC
+FROM 
+    Orders_Data_Container_Max_Financial_Period_Add
+WHERE 
+    "Financial Period YYYYMM" <= MAX_FINANCIAL_PERIOD
+    
+),
+--------------------------------------------------------------------------------------------------
+
+---------------------- Hyperion Product Container --------------------------
+Hyperion_Product_Container AS (
+    SELECT 
+        TIME_YEAR_NUM,
+        TIME_MONTH_NUM,
+        "Financial Period YYYYMM",
+        "ASYM YYYYMM",
+        LINE_OF_BUSINESS,
+        SALES_GROUP,
+        SALES_CHANNEL,
+        REV_CHNL_DESC,
+        "Territory Type Code",
+        TERR_NUM,
+        TERR_DESC,
+        COMPANY_NAME,
+        SALES_FORCE_DESC,
+        MARKET_SEGMENT_DESC,
+        REP_FUNCTION_DESC,
+        REP_NUM,
+        REP_LAST_NAME,
+        REP_FIRST_NAME,
+        RULE_NEW_RENEWAL_SALE AS NEW_RENEWAL_SALE,
+        CHANNEL_MARKER,
+        "Order Doc Num",
+        "Line Item Num",
+        ORDER_TYPE,
+        ORDER_TYPE_GROUP_DESC,
+        AWARD_TYPE,
+        SALES_TYPE,
+        SALES_TYPE_DESC,  
+        BASE_ID,
+        BASE_ID_DESC,
+        MYR_ID,
+        RENEWAL_IND,
+        RENEWAL_IND_DESC,
+        CHARGEBACK_DOC_NUMBER,
+        CHARGEBACK_ITEM_NUMBER,
+        TRACK_DOC_NUMBER,
+        TRACK_S_ORD_ITEM,
+        MATL_GROUP,
+        MATERIAL_NUM,
+        "UPPER(EDW_SNFL.TRDW.MATERIALDIM.MATERIAL_TXT)" AS "MATERIAL DESC",
+        CLSFITION1_DESC,
+        CLSFITION2_DESC,
+        CLSFITION3_DESC,
+        CLSFITION4_DESC,
+        CLSFITION5_DESC,
+        "ZW Customer Number",
+        "ZW Customer Desc",
+        "ZW City",
+        "ZW Region",
+        "ZW Country",
+        "ZW Postal Code",
+        "ZW CUST_GROUP_TXT",
+        "ZW ECMID",
+        "ZW ECM Full Name",
+        "ZW CY Segment L1",
+        "ZW CY Segment L2",
+        "ZB Customer Number",
+        "ZB Customer Desc",
+        "ZB City",
+        "ZB Region",
+        "ZB Country",
+        "ZB Postal Code",
+        "ZB ECMID",
+        "ZB ECM Full Name",
+        "ZB CY Segment L1",
+        "ZB CY Segment L2",   
+        "New Sales Amount",
+        Doc_Currency AS "Doc Currency",
+        USD_New_Sales_Amount AS "USD New Sales Amount",
+        ADJUSTMENT_ID,
+        ADJUSTMENT_REASON,
+        TR_SASFM_REV_TYPE_DESC,
+        CLASSIFICATION1,
+        CLASSIFICATION2,
+        CLASSIFICATION3,
+        CLASSIFICATION4,
+        CLASSIFICATION5,
+        SUBMIT_PAYEE_ID,
+        ZTERRTYP_TXT,   
+        SalesRegion,
+        AWARD_TYPE2,
+        AWARD_TYPE_DESC2,
+        EXTRACT_CMSN_RECORD2,
+        CHANNEL_MARKER2,
+        SALE_AMT_RULE,
+        REPLACED_REV_FLAG_LEGACY,
+        NOTE,
+        CHANGE_DATE,
+        SALES_CODE         
+    FROM 
+        Varicent_Cleanup_Container_Classification_Filter_True
+    UNION 
+    SELECT
+        TIME_YEAR_NUM,
+        TIME_MONTH_NUM,
+        "Financial Period YYYYMM",
+        "ASYM YYYYMM",
+        LINE_OF_BUSINESS,
+        NULL AS SALES_GROUP,
+        NULL AS SALES_CHANNEL,
+        ZREVCHANL_TXT AS REV_CHNL_DESC,
+        NULL AS "Territory Type Code",
+        NULL AS TERR_NUM,
+        NULL AS TERR_DESC,
+        NULL AS COMPANY_NAME,
+        NULL AS SALES_FORCE_DESC,
+        NULL AS MARKET_SEGMENT_DESC,
+        NULL AS REP_FUNCTION_DESC,
+        NULL AS REP_NUM,
+        NULL AS REP_LAST_NAME,
+        NULL AS REP_FIRST_NAME,
+        NEW_RENEWAL_SALE,
+        CHANNEL_MARKER,
+        DOC_NUMBER AS "Order Doc Num",
+        S_ORD_ITEM AS "Line Item Num",
+        DOC_TYPE AS ORDER_TYPE,
+        DOC_TYPE_TXT AS ORDER_TYPE_GROUP_DESC,
+        NULL AS AWARD_TYPE,
+        SALES_TYPE,
+        SALES_TYPE_DESC,  
+        NULL AS BASE_ID,
+        NULL AS BASE_ID_DESC,
+        NULL AS MYR_ID,
+        RENEWAL_IND,
+        RENEWAL_IND_DESC,
+        NULL AS CHARGEBACK_DOC_NUMBER,
+        NULL AS CHARGEBACK_ITEM_NUMBER,
+        NULL AS TRACK_DOC_NUMBER,
+        NULL AS TRACK_S_ORD_ITEM,
+        MATL_GROUP,
+        MATERIAL_NUM,
+        "MATERIAL DESC",
+        CLSFITION1_DESC,
+        CLSFITION2_DESC,
+        CLSFITION3_DESC,
+        CLSFITION4_DESC,
+        CLSFITION5_DESC,
+        "ZWCustName" AS "ZW Customer Number",
+        "ZWCustNumber" AS "ZW Customer Desc",
+        "ZW City",
+        "ZW Region",
+        "ZW Country",
+        "ZW Postal Code",
+        "ZW CUST_GROUP_TXT",
+        "ZW ECMID",
+        "ZW ECM Full Name",
+        "ZW CY Segment L1",
+        "ZW CY Segment L2",
+        "ZBCustName" AS "ZB Customer Number",
+        "ZBCustNumber" AS "ZB Customer Desc",
+        "ZB City",
+        "ZB Region",
+        "ZB Country",
+        "ZB Postal Code",
+        "ZB ECMID",
+        "ZB ECM Full Name",
+        "ZB CY Segment L1",
+        "ZB CY Segment L2",   
+        NET_VALUE AS "New Sales Amount",
+        "Doc Currency",
+        USD_NEW_SALES_AMOUNT AS "USD New Sales Amount",
+        NULL AS ADJUSTMENT_ID,
+        NULL AS ADJUSTMENT_REASON,
+        TR_SASFM_REV_TYPE_DESC,
+        CLASSIFICATION1,
+        CLASSIFICATION2,
+        CLASSIFICATION3,
+        CLASSIFICATION4,
+        CLASSIFICATION5,
+        NULL AS SUBMIT_PAYEE_ID,
+        NULL AS ZTERRTYP_TXT,   
+        NULL AS SalesRegion,
+        NULL AS AWARD_TYPE2,
+        NULL AS AWARD_TYPE_DESC2,
+        NULL AS EXTRACT_CMSN_RECORD2,
+        NULL AS CHANNEL_MARKER2,
+        NULL AS SALE_AMT_RULE,
+        NULL AS REPLACED_REV_FLAG_LEGACY,
+        NULL AS NOTE,
+        NULL AS CHANGE_DATE,
+        "Sales Code" AS SALES_CODE 
+    FROM 
+        Orders_Data_Container_Financial_Period_Filter_True
+),
+
+
+
+Hyperion_Product_Container_Inner_Join AS (
+SELECT
+    q1.*,
+    q2.f13 AS "BOB Rollup",
+    q2.f14 AS "Hyperion Account"
+FROM 
+    Hyperion_Product_Container q1
+INNER JOIN 
+    MYDATASPACE.A208043_FINANCE_CONSREVENUE_UAT1.Management_Ownership_ExclGlobal q2
+ON 
+    q1.CLASSIFICATION5 = q2.F5
+), 
+
+Hyperion_Product_Container_left_outer_Join AS (
+SELECT
+    q1.*,
+    q2.f13 AS "BOB Rollup",
+    q2.f14 AS "Hyperion Account"
+FROM 
+    Hyperion_Product_Container q1
+LEFT JOIN 
+    MYDATASPACE.A208043_FINANCE_CONSREVENUE_UAT1.Management_Ownership_ExclGlobal q2
+ON 
+    q1.CLASSIFICATION5 = q2.F5
+minus 
+SELECT 
+    * 
+FROM 
+    Hyperion_Product_Container_Inner_Join
+), 
+
+Hyperion_Product_Container_formula AS (
+SELECT 
+        TIME_YEAR_NUM,
+        TIME_MONTH_NUM,
+        "Financial Period YYYYMM",
+        "ASYM YYYYMM",
+        LINE_OF_BUSINESS,
+        SALES_GROUP,
+        SALES_CHANNEL,
+        REV_CHNL_DESC,
+        "Territory Type Code",
+        TERR_NUM,
+        TERR_DESC,
+        COMPANY_NAME,
+        SALES_FORCE_DESC,
+        MARKET_SEGMENT_DESC,
+        REP_FUNCTION_DESC,
+        REP_NUM,
+        REP_LAST_NAME,
+        REP_FIRST_NAME,
+        NEW_RENEWAL_SALE,
+        CHANNEL_MARKER,
+        "Order Doc Num",
+        "Line Item Num",
+        ORDER_TYPE,
+        ORDER_TYPE_GROUP_DESC,
+        AWARD_TYPE,
+        SALES_TYPE,
+        SALES_TYPE_DESC,  
+        BASE_ID,
+        BASE_ID_DESC,
+        MYR_ID,
+        RENEWAL_IND,
+        RENEWAL_IND_DESC,
+        CHARGEBACK_DOC_NUMBER,
+        CHARGEBACK_ITEM_NUMBER,
+        TRACK_DOC_NUMBER,
+        TRACK_S_ORD_ITEM,
+        MATL_GROUP,
+        MATERIAL_NUM,
+        "MATERIAL DESC",
+        CLSFITION1_DESC,
+        CLSFITION2_DESC,
+        CLSFITION3_DESC,
+        CLSFITION4_DESC,
+        CLSFITION5_DESC,
+        "ZW Customer Number",
+        "ZW Customer Desc",
+        "ZW City",
+        "ZW Region",
+        "ZW Country",
+        "ZW Postal Code",
+        "ZW CUST_GROUP_TXT",
+        "ZW ECMID",
+        "ZW ECM Full Name",
+        "ZW CY Segment L1",
+        "ZW CY Segment L2",
+        "ZB Customer Number",
+        "ZB Customer Desc",
+        "ZB City",
+        "ZB Region",
+        "ZB Country",
+        "ZB Postal Code",
+        "ZB ECMID",
+        "ZB ECM Full Name",
+        "ZB CY Segment L1",
+        "ZB CY Segment L2",   
+        "New Sales Amount",
+        "Doc Currency",
+        "USD New Sales Amount",
+        ADJUSTMENT_ID,
+        ADJUSTMENT_REASON,
+        TR_SASFM_REV_TYPE_DESC,
+        CLASSIFICATION1,
+        CLASSIFICATION2,
+        CLASSIFICATION3,
+        CLASSIFICATION4,
+        CLASSIFICATION5,
+        SUBMIT_PAYEE_ID,
+        ZTERRTYP_TXT,   
+        SalesRegion,
+        AWARD_TYPE2,
+        AWARD_TYPE_DESC2,
+        EXTRACT_CMSN_RECORD2,
+        CHANNEL_MARKER2,
+        SALE_AMT_RULE,
+        REPLACED_REV_FLAG_LEGACY,
+        NOTE,
+        CHANGE_DATE,
+        SALES_CODE,
+        "BOB Rollup",  
+        CASE 
+            WHEN TR_SASFM_REV_TYPE_DESC = 'Outright' THEN 'Transactions Gross Sales'
+            WHEN TR_SASFM_REV_TYPE_DESC = 'Print' THEN 'Print Gross Sales'
+            ELSE 'Recurring Gross Sales'
+        END AS "Hyperion Account"
+FROM 
+        Hyperion_Product_Container_left_outer_Join
+), 
+
+Hyperion_Product_Container_Merge AS (
+SELECT 
+    * 
+FROM 
+    Hyperion_Product_Container_Inner_Join
+UNION ALL 
+SELECT 
+    * 
+FROM 
+    Hyperion_Product_Container_formula
+),
+
+Hyperion_Product_Container_final_Formula AS (
+SELECT 
+        TIME_YEAR_NUM,
+        TIME_MONTH_NUM,
+        "Financial Period YYYYMM",
+        "ASYM YYYYMM",
+        LINE_OF_BUSINESS,
+        SALES_GROUP,
+        SALES_CHANNEL,
+        REV_CHNL_DESC,
+        "Territory Type Code",
+        TERR_NUM,
+        TERR_DESC,
+        COMPANY_NAME,
+        SALES_FORCE_DESC,
+        MARKET_SEGMENT_DESC,
+        REP_FUNCTION_DESC,
+        REP_NUM,
+        REP_LAST_NAME,
+        REP_FIRST_NAME,
+        NEW_RENEWAL_SALE,
+        CASE 
+            WHEN "Territory Type Code" IN ('WEST-HO-EMDI-SR', 'WEST-HO-EMDI-SSR', 'WEST-NT-CE1-SLE')
+                 AND SALES_TYPE != 'LDM NEW SALE' 
+                 AND CHANNEL_MARKER = 'Dup' 
+            THEN 'Rollup'
+            ELSE CHANNEL_MARKER
+        END AS  CHANNEL_MARKER,
+        "Order Doc Num",
+        "Line Item Num",
+        ORDER_TYPE,
+        ORDER_TYPE_GROUP_DESC,
+        AWARD_TYPE,
+        SALES_TYPE,
+        SALES_TYPE_DESC,  
+        BASE_ID,
+        BASE_ID_DESC,
+        MYR_ID,
+        RENEWAL_IND,
+        RENEWAL_IND_DESC,
+        CHARGEBACK_DOC_NUMBER,
+        CHARGEBACK_ITEM_NUMBER,
+        TRACK_DOC_NUMBER,
+        TRACK_S_ORD_ITEM,
+        MATL_GROUP,
+        MATERIAL_NUM,
+        "MATERIAL DESC",
+        CLSFITION1_DESC,
+        CLSFITION2_DESC,
+        CLSFITION3_DESC,
+        CLSFITION4_DESC,
+        CLSFITION5_DESC,
+        "ZW Customer Number",
+        "ZW Customer Desc",
+        "ZW City",
+        "ZW Region",
+        "ZW Country",
+        "ZW Postal Code",
+        "ZW CUST_GROUP_TXT",
+        "ZW ECMID",
+        "ZW ECM Full Name",
+        "ZW CY Segment L1",
+        "ZW CY Segment L2",
+        "ZB Customer Number",
+        "ZB Customer Desc",
+        "ZB City",
+        "ZB Region",
+        "ZB Country",
+        "ZB Postal Code",
+        "ZB ECMID",
+        "ZB ECM Full Name",
+        "ZB CY Segment L1",
+        "ZB CY Segment L2",   
+        "New Sales Amount",
+        "Doc Currency",
+        "USD New Sales Amount",
+        ADJUSTMENT_ID,
+        ADJUSTMENT_REASON,
+        TR_SASFM_REV_TYPE_DESC,
+        CLASSIFICATION1,
+        CLASSIFICATION2,
+        CLASSIFICATION3,
+        CLASSIFICATION4,
+        CLASSIFICATION5,
+        SUBMIT_PAYEE_ID,
+        ZTERRTYP_TXT,   
+        SalesRegion,
+        SALES_CODE,
+        "BOB Rollup",
+        "Hyperion Account"
+FROM 
+        Hyperion_Product_Container_Merge
+),
+----------------------------------------------------------------------------------------
+
+----------------------- True Up Container ------------------------
+True_Up_Container_Formula_1 AS (
+SELECT 
+    DISTINCT * 
+FROM 
+    Hyperion_Product_Container_final_Formula
+WHERE 
+    TIME_YEAR_NUM IS not null
+), 
+
+True_Up_Container_Month_End_Non_Print AS (
+SELECT 
+    * 
+FROM 
+    MYDATASPACE.A208043_FINANCE_CONSREVENUE_UAT1.SRU_Dataset_MonthEnd_NonPrint
+WHERE 
+    CLASSIFICATION1 != 'L1_500_FP'
+),
+
+
+True_Up_Container_Merge AS (
+SELECT 
+    TIME_YEAR_NUM,
+    TIME_MONTH_NUM,
+    to_varchar("Financial Period YYYYMM") AS "Financial Period YYYYMM",
+    "ASYM YYYYMM",
+    LINE_OF_BUSINESS,
+    SALES_GROUP,
+    SALES_CHANNEL,
+    REV_CHNL_DESC,
+    "Territory Type Code",
+    TERR_NUM,
+    TERR_DESC,
+    COMPANY_NAME,
+    SALES_FORCE_DESC,
+    MARKET_SEGMENT_DESC,
+    REP_FUNCTION_DESC,
+    REP_NUM,
+    REP_LAST_NAME,
+    REP_FIRST_NAME,
+    NEW_RENEWAL_SALE,
+    CHANNEL_MARKER,
+    "Order Doc Num",
+    "Line Item Num",
+    ORDER_TYPE,
+    ORDER_TYPE_GROUP_DESC,
+    AWARD_TYPE,
+    SALES_TYPE,
+    SALES_TYPE_DESC,  
+    BASE_ID,
+    BASE_ID_DESC,
+    MYR_ID,
+    RENEWAL_IND,
+    RENEWAL_IND_DESC,
+    CHARGEBACK_DOC_NUMBER,
+    CHARGEBACK_ITEM_NUMBER,
+    TRACK_DOC_NUMBER,
+    TRACK_S_ORD_ITEM,
+    MATL_GROUP,
+    MATERIAL_NUM,
+    "MATERIAL DESC",
+    CLSFITION1_DESC,
+    CLSFITION2_DESC,
+    CLSFITION3_DESC,
+    CLSFITION4_DESC,
+    CLSFITION5_DESC,
+    "ZW Customer Number",
+    "ZW Customer Desc",
+    "ZW City",
+    "ZW Region",
+    "ZW Country",
+    "ZW Postal Code",
+    "ZW CUST_GROUP_TXT",
+    "ZW ECMID",
+    "ZW ECM Full Name",
+    "ZW CY Segment L1",
+    "ZW CY Segment L2",
+    "ZB Customer Number",
+    "ZB Customer Desc",
+    "ZB City",
+    "ZB Region",
+    "ZB Country",
+    "ZB Postal Code",
+    "ZB ECMID",
+    "ZB ECM Full Name",
+    "ZB CY Segment L1",
+    "ZB CY Segment L2",   
+    "New Sales Amount",
+    "Doc Currency",
+    "USD New Sales Amount",
+    ADJUSTMENT_ID,
+    ADJUSTMENT_REASON,
+    TR_SASFM_REV_TYPE_DESC,
+    CLASSIFICATION1,
+    CLASSIFICATION2,
+    CLASSIFICATION3,
+    CLASSIFICATION4,
+    CLASSIFICATION5,
+    SUBMIT_PAYEE_ID,
+    ZTERRTYP_TXT,   
+    to_char(SalesRegion) AS SalesRegion,
+    SALES_CODE,
+    "Hyperion Account",
+    (CASE 
+        WHEN TO_CHAR(DATE_TRUNC('month', CURRENT_DATE), 'YYYYMM') > "Financial Period YYYYMM"
+        THEN TO_CHAR(DATE_TRUNC('month', CURRENT_DATE) - INTERVAL '1 month', 'YYYYMM')
+        ELSE TO_CHAR(DATE_TRUNC('month', CURRENT_DATE), 'YYYYMM')
+    END) AS "Hyperion Financial Period"
+FROM 
+    True_Up_Container_Formula_1
+    UNION  
+SELECT 
+        TIME_YEAR_NUM,
+        TIME_MONTH_NUM,
+        FINANCIAL_PERIOD_YYYYMM AS "Financial Period YYYYMM",
+        ASYM_YYYYMM AS "ASYM YYYYMM",
+        LINE_OF_BUSINESS,
+        SALES_GROUP,
+        SALES_CHANNEL,
+        REV_CHNL_DESC,
+        TERRITORY_TYPE_CODE AS "Territory Type Code",
+        TERR_NUM,
+        TERR_DESC,
+        COMPANY_NAME,
+        SALES_FORCE_DESC,
+        MARKET_SEGMENT_DESC,
+        REP_FUNCTION_DESC,
+        REP_NUM,
+        REP_LAST_NAME,
+        REP_FIRST_NAME,
+        NEW_RENEWAL_SALE,
+        CHANNEL_MARKER,
+        ORDER_DOC_NUM AS "Order Doc Num",
+        LINE_ITEM_NUM AS "Line Item Num",
+        ORDER_TYPE,
+        ORDER_TYPE_GROUP_DESC,
+        AWARD_TYPE,
+        SALES_TYPE,
+        SALES_TYPE_DESC,  
+        BASE_ID,
+        BASE_ID_DESC,
+        MYR_ID,
+        RENEWAL_IND,
+        RENEWAL_IND_DESC,
+        CHARGEBACK_DOC_NUMBER,
+        CHARGEBACK_ITEM_NUMBER,
+        TRACK_DOC_NUMBER,
+        TRACK_S_ORD_ITEM,
+        MATL_GROUP,
+        MATERIAL_NUM,
+        MATERIAL_DESC AS "MATERIAL DESC",
+        CLSFITION1_DESC,
+        CLSFITION2_DESC,
+        CLSFITION3_DESC,
+        CLSFITION4_DESC,
+        CLSFITION5_DESC,
+        ZW_CUSTOMER_NUMBER AS "ZW Customer Number",
+        ZW_CUSTOMER_DESC AS "ZW Customer Desc",
+        ZW_CITY AS "ZW City",
+        ZW_REGION AS "ZW Region",
+        ZW_COUNTRY AS "ZW Country",
+        ZW_POSTAL_CODE AS "ZW Postal Code",
+        ZW_CUST_GROUP_TXT AS "ZW CUST_GROUP_TXT",
+        ZW_ECMID AS "ZW ECMID",
+        ZW_ECM_FULL_NAME AS "ZW ECM Full Name",
+        ZW_CY_SEGMENT_L1 AS "ZW CY Segment L1",
+        ZW_CY_SEGMENT_L2 AS "ZW CY Segment L2",
+        ZB_CUSTOMER_NUMBER AS "ZB Customer Number",
+        ZB_CUSTOMER_DESC AS "ZB Customer Desc",
+        ZB_CITY AS "ZB City",
+        ZB_REGION AS "ZB Region",
+        ZB_COUNTRY AS "ZB Country",
+        ZB_POSTAL_CODE AS "ZB Postal Code",
+        ZB_ECMID AS "ZB ECMID",
+        ZB_ECM_FULL_NAME AS "ZB ECM Full Name",
+        ZB_CY_SEGMENT_L1 AS "ZB CY Segment L1",
+        ZB_CY_SEGMENT_L2 AS "ZB CY Segment L2",   
+        NEW_SALES_AMOUNT AS "New Sales Amount",
+        DOC_CURRENCY AS "Doc Currency",
+        USD_NEW_SALES_AMOUNT AS "USD New Sales Amount",
+        ADJUSTMENT_ID,
+        ADJUSTMENT_REASON,
+        TR_SASFM_REV_TYPE_DESC,
+        CLASSIFICATION1,
+        CLASSIFICATION2,
+        CLASSIFICATION3,
+        CLASSIFICATION4,
+        CLASSIFICATION5,
+        SUBMIT_PAYEE_ID,
+        ZTERRTYP_TXT,
+        to_char(SALES_REGION) AS SalesRegion,
+        SALES_CODE,
+        HYPERION_ACCOUNT AS "Hyperion Account",
+        HYPERION_FINANCIAL_PERIOD_YYYYMM AS "Hyperion Financial Period"
+FROM 
+        True_Up_Container_Month_End_Non_Print
+), 
+
+
+True_Up_Container_Final_Select AS (
+SELECT
+    DISTINCT
+    TIME_YEAR_NUM,
+    TIME_MONTH_NUM,
+    "Financial Period YYYYMM",
+    "ASYM YYYYMM",
+    LINE_OF_BUSINESS,
+    SALES_GROUP,
+    SALES_CHANNEL,
+    REV_CHNL_DESC,
+    "Territory Type Code",
+    TERR_NUM,
+    TERR_DESC,
+    COMPANY_NAME,
+    SALES_FORCE_DESC,
+    MARKET_SEGMENT_DESC,
+    REP_FUNCTION_DESC,
+    REP_NUM,
+    REP_LAST_NAME,
+    REP_FIRST_NAME,
+    NEW_RENEWAL_SALE,
+    CHANNEL_MARKER,
+    "Order Doc Num",
+    "Line Item Num",
+    ORDER_TYPE,
+    ORDER_TYPE_GROUP_DESC,
+    AWARD_TYPE,
+    SALES_TYPE,
+    SALES_TYPE_DESC,  
+    BASE_ID,
+    BASE_ID_DESC,
+    MYR_ID,
+    RENEWAL_IND,
+    RENEWAL_IND_DESC,
+    CHARGEBACK_DOC_NUMBER,
+    CHARGEBACK_ITEM_NUMBER,
+    TRACK_DOC_NUMBER,
+    TRACK_S_ORD_ITEM,
+    MATL_GROUP,
+    MATERIAL_NUM,
+    "MATERIAL DESC",
+    CLSFITION1_DESC,
+    CLSFITION2_DESC,
+    CLSFITION3_DESC,
+    CLSFITION4_DESC,
+    CLSFITION5_DESC,
+    "ZW Customer Number",
+    "ZW Customer Desc",
+    "ZW City",
+    "ZW Region",
+    "ZW Country",
+    "ZW Postal Code",
+    "ZW CUST_GROUP_TXT",
+    "ZW ECMID",
+    "ZW ECM Full Name",
+    "ZW CY Segment L1",
+    "ZW CY Segment L2",
+    "ZB Customer Number",
+    "ZB Customer Desc",
+    "ZB City",
+    "ZB Region",
+    "ZB Country",
+    "ZB Postal Code",
+    "ZB ECMID",
+    "ZB ECM Full Name",
+    "ZB CY Segment L1",
+    "ZB CY Segment L2",   
+    "New Sales Amount",
+    "Doc Currency",
+    "USD New Sales Amount",
+    ADJUSTMENT_ID,
+    ADJUSTMENT_REASON,
+    TR_SASFM_REV_TYPE_DESC,
+    CLASSIFICATION1,
+    CLASSIFICATION2,
+    CLASSIFICATION3,
+    CLASSIFICATION4,
+    CLASSIFICATION5,
+    SUBMIT_PAYEE_ID,
+    ZTERRTYP_TXT,   
+    SalesRegion,
+    SALES_CODE,
+    "Hyperion Account",
+    "Hyperion Financial Period",
+    CASE 
+        WHEN "ASYM YYYYMM" > "Financial Period YYYYMM" THEN 'BRIDGE' 
+        WHEN "ASYM YYYYMM" < "Financial Period YYYYMM" THEN 'BAR'
+        ELSE 'N'
+    END AS BRIDGE_BAR_FLAG
+FROM 
+    True_Up_Container_Merge
+    
+), 
+
+------------------------------------------------------------------------------------------
+
+--------------------- Container 679 --------------------------------
+New_Container_Segment_and_Sub_Segment_Left_Join AS (
+SELECT 
+    q1.*,
+    q2.segment,
+    q2.SUB_SEGMENT,
+    q2.DISTRICT
+FROM 
+    True_Up_Container_Final_Select q1
+LEFT JOIN 
+    MYDATASPACE.A208043_FINANCE_CONSREVENUE_UAT1.SRU_Segment_and_SubSegment q2
+ON 
+    q1.TERR_NUM = q2.terr_num
+),
+-----------------------------------------------------------------------
+
+--------------------- Container 215 --------------------------------
+
+History_Data_Container_Filter AS ( 
+SELECT 
+    * 
+FROM 
+    MYDATASPACE.A208043_FINANCE_CONSREVENUE_UAT1.SRU_Dataset_MonthEnd_Historydata
+WHERE 
+    CLASSIFICATION1 IS null 
+    OR 
+    CLASSIFICATION1 != 'L1_500_FP'
+), 
+--- 1572,160
+
+History_Data_Non_Print_Mapping_Data_Left_Join AS (
+SELECT 
+    q1.TIME_YEAR_NUM,
+    q1.TIME_MONTH_NUM,
+    q1.FINANCIAL_PERIOD_YYYYMM AS "Financial Period YYYYMM",
+    q1.ASYM_YYYYMM AS "ASYM YYYYMM",
+    q1.LINE_OF_BUSINESS,
+    q1.SALES_GROUP,
+    q1.SALES_CHANNEL,
+    q1.REV_CHNL_DESC,
+    q1.TERRITORY_TYPE_CODE AS "Territory Type Code",
+    q1.TERR_NUM,
+    q1.TERR_DESC,
+    q1.COMPANY_NAME,
+    q1.SALES_FORCE_DESC,
+    q1.MARKET_SEGMENT_DESC,
+    q1.REP_FUNCTION_DESC,
+    q1.REP_NUM,
+    q1.REP_LAST_NAME,
+    q1.REP_FIRST_NAME,
+    q1.NEW_RENEWAL_SALE,
+    q1.CHANNEL_MARKER,
+    q1.ORDER_DOC_NUM AS "Order Doc Num",
+    q1.LINE_ITEM_NUM AS "Line Item Num",
+    q1.ORDER_TYPE,
+    q1.ORDER_TYPE_GROUP_DESC,
+    q1.AWARD_TYPE,
+    q1.SALES_TYPE,
+    q1.SALES_TYPE_DESC,  
+    q1.BASE_ID,
+    q1.BASE_ID_DESC,
+    q1.MYR_ID,
+    q1.RENEWAL_IND,
+    q1.RENEWAL_IND_DESC,
+    q1.CHARGEBACK_DOC_NUMBER,
+    q1.CHARGEBACK_ITEM_NUMBER,
+    q1.TRACK_DOC_NUMBER,
+    q1.TRACK_S_ORD_ITEM,
+    q1.MATL_GROUP,
+    q1.MATERIAL_NUM,
+    q1.MATERIAL_DESC AS "MATERIAL DESC",
+    q1.CLSFITION1_DESC,
+    q1.CLSFITION2_DESC,
+    q1.CLSFITION3_DESC,
+    q1.CLSFITION4_DESC,
+    q1.CLSFITION5_DESC,
+    q1.ZW_CUSTOMER_NUMBER AS "ZW Customer Number",
+    q1.ZW_CUSTOMER_DESC AS "ZW Customer Desc",
+    q1.ZW_CITY AS "ZW City",
+    q1.ZW_COUNTRY AS "ZW Region",
+    q1.ZW_COUNTRY AS "ZW Country",
+    q1.ZW_POSTAL_CODE AS "ZW Postal Code",
+    q1.ZW_CUST_GROUP_TXT AS "ZW CUST_GROUP_TXT",
+    q1.ZW_ECMID AS "ZW ECMID",
+    q1.ZW_ECM_FULL_NAME AS "ZW ECM Full Name",
+    q1.ZW_CY_SEGMENT_L1 AS "ZW CY Segment L1",
+    q1.ZW_CY_SEGMENT_L2 AS "ZW CY Segment L2",
+    q1.ZB_CUSTOMER_NUMBER AS "ZB Customer Number",
+    q1.ZB_CUSTOMER_DESC AS "ZB Customer Desc",
+    q1.ZB_CITY AS "ZB City",
+    q1.ZB_COUNTRY AS "ZB Region",
+    q1.ZB_COUNTRY AS "ZB Country",
+    q1.ZB_POSTAL_CODE AS "ZB Postal Code",
+    q1.ZB_ECMID AS "ZB ECMID",
+    q1.ZB_ECM_FULL_NAME AS "ZB ECM Full Name",
+    q1.ZB_CY_SEGMENT_L1 AS "ZB CY Segment L1",
+    q1.ZB_CY_SEGMENT_L2 AS "ZB CY Segment L2",
+    q1.NEW_SALES_AMOUNT AS "New Sales Amount",
+    q1.DOC_CURRENCY AS "Doc Currency",
+    q1.USD_NEW_SALES_AMOUNT AS "USD New Sales Amount",
+    q1.ADJUSTMENT_ID,
+    q1.ADJUSTMENT_REASON,
+    q1.TR_SASFM_REV_TYPE_DESC,
+    q1.CLASSIFICATION1,
+    q1.CLASSIFICATION2,
+    q1.CLASSIFICATION3,
+    q1.CLASSIFICATION4,
+    q1.CLASSIFICATION5,
+    q1.SUBMIT_PAYEE_ID,
+    q1.ZTERRTYP_TXT,   
+    q1.Sales_Region AS SalesRegion,
+    q1.SALES_CODE,
+    q1.HYPERION_ACCOUNT AS "Hyperion Account",
+    q1.HYPERION_FINANCIAL_PERIOD_YYYYMM AS "Hyperion Financial Period",
+    q1.BRIDGE_BAR_FLAG,
+    q2.Segment,
+    q2.Sub_Segment,
+    q2.District
+FROM 
+    History_Data_Container_Filter q1
+LEFT JOIN 
+    MYDATASPACE.A208043_FINANCE_CONSREVENUE_UAT1.SRU_NonPrint_UpdatedMapping_File q2 
+ON 
+    LOWER(q1.TERR_NUM) = LOWER(q2.TERR_NUM)
+), 
+
+
+Final_Merge AS (
+SELECT 
+    to_varchar(TIME_YEAR_NUM) AS TIME_YEAR_NUM,
+    to_varchar(TIME_MONTH_NUM) AS TIME_MONTH_NUM,
+    to_varchar("Financial Period YYYYMM") AS "Financial Period YYYYMM",
+    to_varchar("ASYM YYYYMM") AS "ASYM YYYYMM",
+    LINE_OF_BUSINESS,
+    SALES_GROUP,
+    SALES_CHANNEL,
+    REV_CHNL_DESC,
+    "Territory Type Code",
+    TERR_NUM,
+    TERR_DESC,
+    COMPANY_NAME,
+    SALES_FORCE_DESC,
+    MARKET_SEGMENT_DESC,
+    REP_FUNCTION_DESC,
+    REP_NUM,
+    REP_LAST_NAME,
+    REP_FIRST_NAME,
+    NEW_RENEWAL_SALE,
+    CHANNEL_MARKER,
+    "Order Doc Num",
+    "Line Item Num",
+    ORDER_TYPE,
+    ORDER_TYPE_GROUP_DESC,
+    AWARD_TYPE,
+    SALES_TYPE,
+    SALES_TYPE_DESC,  
+    BASE_ID,
+    BASE_ID_DESC,
+    MYR_ID,
+    RENEWAL_IND,
+    RENEWAL_IND_DESC,
+    CHARGEBACK_DOC_NUMBER,
+    CHARGEBACK_ITEM_NUMBER,
+    TRACK_DOC_NUMBER,
+    TRACK_S_ORD_ITEM,
+    MATL_GROUP,
+    MATERIAL_NUM,
+    "MATERIAL DESC",
+    CLSFITION1_DESC,
+    CLSFITION2_DESC,
+    CLSFITION3_DESC,
+    CLSFITION4_DESC,
+    CLSFITION5_DESC,
+    "ZW Customer Number",
+    "ZW Customer Desc",
+    "ZW City",
+    "ZW Region",
+    "ZW Country",
+    "ZW Postal Code",
+    "ZW CUST_GROUP_TXT",
+    "ZW ECMID",
+    "ZW ECM Full Name",
+    "ZW CY Segment L1",
+    "ZW CY Segment L2",
+    "ZB Customer Number",
+    "ZB Customer Desc",
+    "ZB City",
+    "ZB Region",
+    "ZB Country",
+    "ZB Postal Code",
+    "ZB ECMID",
+    "ZB ECM Full Name",
+    "ZB CY Segment L1",
+    "ZB CY Segment L2",   
+    "New Sales Amount",
+    "Doc Currency",
+    to_double("USD New Sales Amount") "USD New Sales Amount",
+    ADJUSTMENT_ID,
+    ADJUSTMENT_REASON,
+    TR_SASFM_REV_TYPE_DESC,
+    CLASSIFICATION1,
+    CLASSIFICATION2,
+    CLASSIFICATION3,
+    CLASSIFICATION4,
+    CLASSIFICATION5,
+    to_double(SUBMIT_PAYEE_ID) AS SUBMIT_PAYEE_ID,
+    ZTERRTYP_TXT,   
+    SalesRegion,
+    SALES_CODE,
+    "Hyperion Account",
+    "Hyperion Financial Period",
+     BRIDGE_BAR_FLAG
+FROM 
+    New_Container_Segment_and_Sub_Segment_Left_Join
+UNION ALL
+SELECT 
+    to_varchar(TIME_YEAR_NUM) AS TIME_YEAR_NUM,
+    to_varchar(TIME_MONTH_NUM) AS TIME_MONTH_NUM,
+    to_varchar("Financial Period YYYYMM") AS "Financial Period YYYYMM",
+    to_varchar("ASYM YYYYMM") AS "ASYM YYYYMM",
+    LINE_OF_BUSINESS,
+    SALES_GROUP,
+    SALES_CHANNEL,
+    REV_CHNL_DESC,
+    "Territory Type Code",
+    TERR_NUM,
+    TERR_DESC,
+    COMPANY_NAME,
+    SALES_FORCE_DESC,
+    MARKET_SEGMENT_DESC,
+    REP_FUNCTION_DESC,
+    REP_NUM,
+    REP_LAST_NAME,
+    REP_FIRST_NAME,
+    NEW_RENEWAL_SALE,
+    CHANNEL_MARKER,
+    "Order Doc Num",
+    "Line Item Num",
+    ORDER_TYPE,
+    ORDER_TYPE_GROUP_DESC,
+    AWARD_TYPE,
+    SALES_TYPE,
+    SALES_TYPE_DESC,  
+    BASE_ID,
+    BASE_ID_DESC,
+    MYR_ID,
+    RENEWAL_IND,
+    RENEWAL_IND_DESC,
+    CHARGEBACK_DOC_NUMBER,
+    CHARGEBACK_ITEM_NUMBER,
+    TRACK_DOC_NUMBER,
+    TRACK_S_ORD_ITEM,
+    MATL_GROUP,
+    MATERIAL_NUM,
+    "MATERIAL DESC",
+    CLSFITION1_DESC,
+    CLSFITION2_DESC,
+    CLSFITION3_DESC,
+    CLSFITION4_DESC,
+    CLSFITION5_DESC,
+    "ZW Customer Number",
+    "ZW Customer Desc",
+    "ZW City",
+    "ZW Region",
+    "ZW Country",
+    "ZW Postal Code",
+    "ZW CUST_GROUP_TXT",
+    "ZW ECMID",
+    "ZW ECM Full Name",
+    "ZW CY Segment L1",
+    "ZW CY Segment L2",
+    "ZB Customer Number",
+    "ZB Customer Desc",
+    "ZB City",
+    "ZB Region",
+    "ZB Country",
+    "ZB Postal Code",
+    "ZB ECMID",
+    "ZB ECM Full Name",
+    "ZB CY Segment L1",
+    "ZB CY Segment L2",   
+    "New Sales Amount",
+    "Doc Currency",
+    "USD New Sales Amount",
+    ADJUSTMENT_ID,
+    ADJUSTMENT_REASON,
+    TR_SASFM_REV_TYPE_DESC,
+    CLASSIFICATION1,
+    CLASSIFICATION2,
+    CLASSIFICATION3,
+    CLASSIFICATION4,
+    CLASSIFICATION5,
+    SUBMIT_PAYEE_ID,
+    ZTERRTYP_TXT,   
+    SalesRegion,
+    SALES_CODE,
+    "Hyperion Account",
+    "Hyperion Financial Period",
+    BRIDGE_BAR_FLAG
+FROM 
+    History_Data_Non_Print_Mapping_Data_Left_Join
+), 
+-------------------------------------------------------------------------------
+
+
+------------------- Primary SRU Data ---------------------
+Primary_SRU_Data AS (
+SELECT 
+    TIME_YEAR_NUM,
+    TIME_MONTH_NUM,
+    TO_DATE(SUBSTR("Financial Period YYYYMM", 1, 4) || '-' || SUBSTR("Financial Period YYYYMM", 5, 2) || '-01', 'YYYY-MM-DD') AS "Financial Period YYYYMM",
+    TO_DATE(SUBSTR("ASYM YYYYMM", 1, 4) || '-' || SUBSTR("ASYM YYYYMM", 5, 2) || '-01', 'YYYY-MM-DD') AS "ASYM YYYYMM",
+    LINE_OF_BUSINESS,
+    SALES_GROUP,
+    SALES_CHANNEL,
+    REV_CHNL_DESC,
+    "Territory Type Code",
+    TERR_NUM,
+    TERR_DESC,
+    COMPANY_NAME,
+    SALES_FORCE_DESC,
+    MARKET_SEGMENT_DESC,
+    REP_FUNCTION_DESC,
+    REP_NUM,
+    REP_LAST_NAME,
+    REP_FIRST_NAME,
+    NEW_RENEWAL_SALE,
+    CHANNEL_MARKER,
+    "Order Doc Num",
+    "Line Item Num",
+    ORDER_TYPE,
+    ORDER_TYPE_GROUP_DESC,
+    AWARD_TYPE,
+    SALES_TYPE,
+    SALES_TYPE_DESC,  
+    BASE_ID,
+    BASE_ID_DESC,
+    MYR_ID,
+    RENEWAL_IND,
+    RENEWAL_IND_DESC,
+    CHARGEBACK_DOC_NUMBER,
+    CHARGEBACK_ITEM_NUMBER,
+    TRACK_DOC_NUMBER,
+    TRACK_S_ORD_ITEM,
+    MATL_GROUP,
+    MATERIAL_NUM,
+    "MATERIAL DESC",
+    CLSFITION1_DESC,
+    CLSFITION2_DESC,
+    CLSFITION3_DESC,
+    CLSFITION4_DESC,
+    CLSFITION5_DESC,
+    "ZW Customer Number",
+    "ZW Customer Desc",
+    "ZW City",
+    "ZW Region",
+    "ZW Country",
+    "ZW Postal Code",
+    "ZW CUST_GROUP_TXT",
+    "ZW ECMID",
+    "ZW ECM Full Name",
+    "ZW CY Segment L1",
+    "ZW CY Segment L2",
+    "ZB Customer Number",
+    "ZB Customer Desc",
+    "ZB City",
+    "ZB Region",
+    "ZB Country",
+    "ZB Postal Code",
+    "ZB ECMID",
+    "ZB ECM Full Name",
+    "ZB CY Segment L1",
+    "ZB CY Segment L2",   
+    "New Sales Amount",
+    "Doc Currency",
+    "USD New Sales Amount",
+    ADJUSTMENT_ID,
+    ADJUSTMENT_REASON,
+    TR_SASFM_REV_TYPE_DESC,
+    CLASSIFICATION1,
+    CLASSIFICATION2,
+    CLASSIFICATION3,
+    CLASSIFICATION4,
+    CLASSIFICATION5,
+    SUBMIT_PAYEE_ID,
+    ZTERRTYP_TXT,   
+    SalesRegion,
+    SALES_CODE,
+    "Hyperion Account",
+    TO_DATE(SUBSTR("Hyperion Financial Period", 1, 4) || '-' || SUBSTR("Hyperion Financial Period", 5, 2) || '-01', 'YYYY-MM-DD') AS "Hyperion Financial Period",
+    BRIDGE_BAR_FLAG,
+    CURRENT_TIMESTAMP AS DateTimeNow,
+    'SRU' AS SOURCE
+FROM 
+    Final_Merge
+WHERE 
+    CLASSIFICATION1 NOT IN ('L1_500FP') 
+    OR CLASSIFICATION1 IS NULL
+)
+
+
+-------- Execute the "Primary_SRU_Data" CTE to get the final output: 
+SELECT * FROM Primary_SRU_Data
+-----------------------------------------------------------------------------------------------------------------------
+
+
