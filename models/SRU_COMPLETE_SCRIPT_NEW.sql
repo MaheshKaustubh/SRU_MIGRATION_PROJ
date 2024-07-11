@@ -5,9 +5,6 @@
      Author: Kaustubh Mahesh
 */
 
-
-----------------------------Final Query for SRU FROM here below -------------------------------------------------------------------
-
  --------------- Varicent Data Contianer (Currency Conversion AND GLI Terr Type Exclusion) ----------------
 
 ------SRU Data till Inner Join in Alteryx
